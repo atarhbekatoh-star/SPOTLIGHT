@@ -6,164 +6,237 @@ class PathPage extends StatefulWidget {
 }
 
 class _PathPageState extends State<PathPage> {
-  int xp = 30;
-  int currentLevelIndex = 0;
-
-  final List<Map<String, dynamic>> levels = [
-    {"title": "Extra", "icon": "👤", "color": Colors.grey},
-    {"title": "Supporting Role", "icon": "🎭", "color": Colors.blueAccent},
-    {"title": "Main Character", "icon": "✨", "color": Colors.purpleAccent},
-    {"title": "Leading Role", "icon": "👑", "color": Colors.amber},
+  // Personalized nodes for the "Spotlight" confidence journey
+  final List<Map<String, dynamic>> nodes = [
+    {
+      "icon": Icons.mic_external_on,
+      "color": Color(0xFFBB86FC), // Electric Purple
+      "hasTooltip": true,
+      "title": "First Words",
+      "offset": 0.0,
+    },
+    {
+      "icon": Icons.accessibility_new,
+      "color": Color(0xFF23363d),
+      "title": "Body Language",
+      "offset": 50.0,
+    },
+    {
+      "icon": Icons.groups,
+      "color": Color(0xFF23363d),
+      "title": "Small Crowds",
+      "offset": 80.0,
+    },
+    {
+      "icon": Icons.record_voice_over,
+      "color": Color(0xFF23363d),
+      "title": "Vocal Mastery",
+      "offset": 40.0,
+    },
+    {
+      "icon": Icons.campaign,
+      "color": Color(0xFF23363d),
+      "title": "The Spotlight",
+      "offset": 0.0,
+    },
   ];
-
-  void _gainXP() {
-    setState(() {
-      xp += 25; // Bigger jump for better feel
-      if (xp >= 100) {
-        if (currentLevelIndex < levels.length - 1) {
-          xp = 0;
-          currentLevelIndex++;
-          _showLevelUpDialog();
-        } else {
-          xp = 100; // Maxed out
-        }
-      }
-    });
-  }
-
-  void _showLevelUpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("LEVEL UP! 🎉", style: TextStyle(color: Colors.white)),
-        content: Text(
-          "You are now a ${levels[currentLevelIndex]['title']}!",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("LFG!"),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0F0F1A), // Sleek dark background
+      backgroundColor: Color(0xFF0A0E21), // Deep Midnight Blue
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildSpotlightHeader(),
+            _buildInstructionLabel(),
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.symmetric(vertical: 40),
+              child: Stack(
                 children: [
-                  _buildPathNode(3, true),
-                  _buildConnector(),
-                  _buildPathNode(2, false),
-                  _buildConnector(),
-                  _buildPathNode(1, false),
-                  _buildConnector(),
-                  _buildPathNode(0, false),
+                  _buildMascot(),
+                  _buildPathList(),
+                  _buildBottomRightAction(),
                 ],
               ),
             ),
-            _buildBottomAction(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildSpotlightHeader() {
     return Container(
-      padding: EdgeInsets.all(20),
+      margin: EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       decoration: BoxDecoration(
-        color: Color(0xFF1E1E2E),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+        gradient: LinearGradient(
+          colors: [Color(0xFF6200EE), Color(0xFFBB86FC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF6200EE).withOpacity(0.4),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "🔥 5 Day Streak",
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "STAGE 1, MODULE 3",
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 1.1,
+                  ),
                 ),
-              ),
-              Icon(Icons.settings, color: Colors.white54),
-            ],
+                SizedBox(height: 4),
+                Text(
+                  "Breaking the Ice: Vocal Warmups",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
           ),
-          SizedBox(height: 20),
+          Container(
+            height: 40,
+            width: 1,
+            color: Colors.white24,
+            margin: EdgeInsets.symmetric(horizontal: 12),
+          ),
+          Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionLabel() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(color: Colors.white10, indent: 30, endIndent: 10),
+          ),
           Text(
-            levels[currentLevelIndex]['title'].toUpperCase(),
+            "CHALLENGE: SPEAK FOR 30 SECONDS",
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
+              color: Color(0xFF03DAC6), // Cyan accent
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
             ),
           ),
-          SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: xp / 100,
-              minHeight: 12,
-              backgroundColor: Colors.white10,
-              color: levels[currentLevelIndex]['color'],
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            "$xp / 100 XP to next rank",
-            style: TextStyle(color: Colors.white38),
+          Expanded(
+            child: Divider(color: Colors.white10, indent: 10, endIndent: 30),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPathNode(int index, bool isLocked) {
-    bool isCurrent = index == currentLevelIndex;
-    bool isPassed = index < currentLevelIndex;
+  Widget _buildMascot() {
+    return Positioned(
+      left: 30,
+      bottom: 150,
+      child: Opacity(
+        opacity: 0.6,
+        child: Column(
+          children: [
+            Icon(Icons.psychology, size: 90, color: Color(0xFFBB86FC)),
+            Text(
+              "Focus",
+              style: TextStyle(color: Colors.white30, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildPathList() {
+    return ListView.builder(
+      padding: EdgeInsets.only(top: 60, bottom: 40),
+      itemCount: nodes.length,
+      itemBuilder: (context, index) {
+        final node = nodes[index];
+        return Center(
+          child: Transform.translate(
+            offset: Offset(node['offset'] ?? 0.0, 0),
+            child: Column(
+              children: [
+                if (node['hasTooltip'] == true) _buildJumpTooltip(),
+                _buildNodeCircle(node),
+                SizedBox(height: 35),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildJumpTooltip() {
     return Column(
       children: [
         Container(
-          height: 90,
-          width: 90,
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isPassed || isCurrent
-                ? levels[index]['color']
-                : Colors.white10,
-            boxShadow: isCurrent
-                ? [
-                    BoxShadow(
-                      color: levels[index]['color'].withOpacity(0.5),
-                      blurRadius: 20,
-                    ),
-                  ]
-                : [],
+            color: Color(0xFF1E1E2E),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Color(0xFFBB86FC).withOpacity(0.5)),
           ),
-          child: Center(
-            child: Text(levels[index]['icon'], style: TextStyle(fontSize: 40)),
+          child: Text(
+            "START HERE",
+            style: TextStyle(
+              color: Color(0xFF03DAC6),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ),
-        SizedBox(height: 8),
+        Icon(Icons.arrow_drop_down, color: Color(0xFFBB86FC), size: 25),
+      ],
+    );
+  }
+
+  Widget _buildNodeCircle(Map<String, dynamic> node) {
+    return Column(
+      children: [
+        Container(
+          width: 75,
+          height: 75,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: node['color'],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black45,
+                offset: Offset(0, 5),
+                blurRadius: 2,
+              ),
+            ],
+          ),
+          child: Icon(node['icon'], color: Colors.white, size: 32),
+        ),
+        SizedBox(height: 5),
         Text(
-          levels[index]['title'],
+          node['title'],
           style: TextStyle(
-            color: isPassed || isCurrent ? Colors.white : Colors.white24,
+            color: Colors.white24,
+            fontSize: 10,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -171,35 +244,18 @@ class _PathPageState extends State<PathPage> {
     );
   }
 
-  Widget _buildConnector() {
-    return Container(
-      height: 40,
-      width: 4,
-      color: Colors.white10,
-      margin: EdgeInsets.symmetric(vertical: 8),
-    );
-  }
-
-  Widget _buildBottomAction() {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.purpleAccent,
-          minimumSize: Size(double.infinity, 60),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+  Widget _buildBottomRightAction() {
+    return Positioned(
+      bottom: 25,
+      right: 25,
+      child: Container(
+        padding: EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Color(0xFF1E1E2E),
+          shape: BoxShape.circle,
+          border: Border.all(color: Color(0xFF03DAC6), width: 2),
         ),
-        onPressed: _gainXP,
-        child: Text(
-          "COMPLETE DAILY MISSION",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        child: Icon(Icons.insights, color: Color(0xFF03DAC6)),
       ),
     );
   }
