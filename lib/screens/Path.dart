@@ -6,45 +6,53 @@ class PathPage extends StatefulWidget {
 }
 
 class _PathPageState extends State<PathPage> {
-  // Personalized nodes for the "Spotlight" confidence journey
-  final List<Map<String, dynamic>> nodes = [
-    {
-      "icon": Icons.mic_external_on,
-      "color": Color(0xFFBB86FC), // Electric Purple
-      "hasTooltip": true,
-      "title": "First Words",
-      "offset": 0.0,
-    },
-    {
-      "icon": Icons.accessibility_new,
-      "color": Color(0xFF23363d),
-      "title": "Body Language",
-      "offset": 50.0,
-    },
-    {
-      "icon": Icons.groups,
-      "color": Color(0xFF23363d),
-      "title": "Small Crowds",
-      "offset": 80.0,
-    },
-    {
-      "icon": Icons.record_voice_over,
-      "color": Color(0xFF23363d),
-      "title": "Vocal Mastery",
-      "offset": 40.0,
-    },
-    {
-      "icon": Icons.campaign,
-      "color": Color(0xFF23363d),
-      "title": "The Spotlight",
-      "offset": 0.0,
-    },
+  // recurring themes for the 50-level journey
+  final List<Map<String, dynamic>> themeTemplates = [
+    {"icon": Icons.mic_external_on, "title": "Vocal Basics"},
+    {"icon": Icons.accessibility_new, "title": "Body Language"},
+    {"icon": Icons.groups, "title": "Small Groups"},
+    {"icon": Icons.record_voice_over, "title": "Tone Mastery"},
+    {"icon": Icons.campaign, "title": "Stage Presence"},
   ];
+
+  late List<Map<String, dynamic>> allMissions;
+
+  @override
+  void initState() {
+    super.initState();
+    allMissions = _generateMissions(50);
+  }
+
+  // Generates 50 nodes with snaking offsets
+  List<Map<String, dynamic>> _generateMissions(int count) {
+    return List.generate(count, (index) {
+      final template = themeTemplates[index % themeTemplates.length];
+
+      double offset;
+      int pos = index % 4;
+      if (pos == 0)
+        offset = -40.0; // Left-ish
+      else if (pos == 1)
+        offset = 0.0; // Center
+      else if (pos == 2)
+        offset = 40.0; // Right-ish
+      else
+        offset = 0.0; // Center
+
+      return {
+        "icon": template['icon'],
+        "title": "Step ${index + 1}: ${template['title']}",
+        "color": index == 0 ? Color(0xFFBB86FC) : Color(0xFF23363d),
+        "hasTooltip": index == 0,
+        "offset": offset,
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0A0E21), // Deep Midnight Blue
+      backgroundColor: Color(0xFF0A0E21), // Midnight Stage Background
       body: SafeArea(
         child: Column(
           children: [
@@ -52,11 +60,7 @@ class _PathPageState extends State<PathPage> {
             _buildInstructionLabel(),
             Expanded(
               child: Stack(
-                children: [
-                  _buildMascot(),
-                  _buildPathList(),
-                  _buildBottomRightAction(),
-                ],
+                children: [_buildPathList(), _buildBottomRightAction()],
               ),
             ),
           ],
@@ -68,21 +72,13 @@ class _PathPageState extends State<PathPage> {
   Widget _buildSpotlightHeader() {
     return Container(
       margin: EdgeInsets.all(16),
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF6200EE), Color(0xFFBB86FC)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF6200EE).withOpacity(0.4),
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -91,33 +87,25 @@ class _PathPageState extends State<PathPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "STAGE 1, MODULE 3",
+                  "CONFIDENCE RADAR",
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white70,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    letterSpacing: 1.1,
                   ),
                 ),
-                SizedBox(height: 4),
                 Text(
-                  "Breaking the Ice: Vocal Warmups",
+                  "Road to Mastery",
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            height: 40,
-            width: 1,
-            color: Colors.white24,
-            margin: EdgeInsets.symmetric(horizontal: 12),
-          ),
-          Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+          Icon(Icons.auto_awesome, color: Colors.white),
         ],
       ),
     );
@@ -125,42 +113,13 @@ class _PathPageState extends State<PathPage> {
 
   Widget _buildInstructionLabel() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Divider(color: Colors.white10, indent: 30, endIndent: 10),
-          ),
-          Text(
-            "CHALLENGE: SPEAK FOR 30 SECONDS",
-            style: TextStyle(
-              color: Color(0xFF03DAC6), // Cyan accent
-              fontWeight: FontWeight.w800,
-              fontSize: 11,
-            ),
-          ),
-          Expanded(
-            child: Divider(color: Colors.white10, indent: 10, endIndent: 30),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMascot() {
-    return Positioned(
-      left: 30,
-      bottom: 150,
-      child: Opacity(
-        opacity: 0.6,
-        child: Column(
-          children: [
-            Icon(Icons.psychology, size: 90, color: Color(0xFFBB86FC)),
-            Text(
-              "Focus",
-              style: TextStyle(color: Colors.white30, fontSize: 12),
-            ),
-          ],
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        "CHALLENGE: SPEAK FOR 30 SECONDS",
+        style: TextStyle(
+          color: Color(0xFF03DAC6),
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
         ),
       ),
     );
@@ -168,23 +127,65 @@ class _PathPageState extends State<PathPage> {
 
   Widget _buildPathList() {
     return ListView.builder(
-      padding: EdgeInsets.only(top: 60, bottom: 40),
-      itemCount: nodes.length,
+      padding: EdgeInsets.symmetric(vertical: 40),
+      itemCount: allMissions.length,
       itemBuilder: (context, index) {
-        final node = nodes[index];
-        return Center(
-          child: Transform.translate(
-            offset: Offset(node['offset'] ?? 0.0, 0),
-            child: Column(
-              children: [
-                if (node['hasTooltip'] == true) _buildJumpTooltip(),
-                _buildNodeCircle(node),
-                SizedBox(height: 35),
-              ],
+        final node = allMissions[index];
+
+        // Logic to show mascots on alternating sides
+        bool showLeftMascot = index % 8 == 2;
+        bool showRightMascot = index % 8 == 6;
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Left Side Mascot
+            if (showLeftMascot)
+              Positioned(
+                left: 20,
+                child: _buildMascotUnit("Focus", Icons.psychology),
+              ),
+
+            // Right Side Mascot
+            if (showRightMascot)
+              Positioned(
+                right: 20,
+                child: _buildMascotUnit("Energy", Icons.bolt),
+              ),
+
+            // The Path Node
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 25.0),
+              child: Transform.translate(
+                offset: Offset(node['offset'], 0),
+                child: Column(
+                  children: [
+                    if (node['hasTooltip']) _buildJumpTooltip(),
+                    _buildNodeCircle(node),
+                    SizedBox(height: 8),
+                    Text(
+                      node['title'],
+                      style: TextStyle(color: Colors.white24, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildMascotUnit(String label, IconData icon) {
+    return Opacity(
+      opacity: 0.3,
+      child: Column(
+        children: [
+          Icon(icon, size: 70, color: Color(0xFFBB86FC)),
+          Text(label, style: TextStyle(color: Colors.white30, fontSize: 10)),
+        ],
+      ),
     );
   }
 
@@ -192,55 +193,38 @@ class _PathPageState extends State<PathPage> {
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: Color(0xFF1E1E2E),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Color(0xFFBB86FC).withOpacity(0.5)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Color(0xFFBB86FC)),
           ),
           child: Text(
             "START HERE",
             style: TextStyle(
               color: Color(0xFF03DAC6),
+              fontSize: 11,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
             ),
           ),
         ),
-        Icon(Icons.arrow_drop_down, color: Color(0xFFBB86FC), size: 25),
+        Icon(Icons.arrow_drop_down, color: Color(0xFFBB86FC)),
       ],
     );
   }
 
   Widget _buildNodeCircle(Map<String, dynamic> node) {
-    return Column(
-      children: [
-        Container(
-          width: 75,
-          height: 75,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: node['color'],
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black45,
-                offset: Offset(0, 5),
-                blurRadius: 2,
-              ),
-            ],
-          ),
-          child: Icon(node['icon'], color: Colors.white, size: 32),
-        ),
-        SizedBox(height: 5),
-        Text(
-          node['title'],
-          style: TextStyle(
-            color: Colors.white24,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+    return Container(
+      width: 75,
+      height: 75,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: node['color'],
+        boxShadow: [
+          BoxShadow(color: Colors.black45, offset: Offset(0, 4), blurRadius: 2),
+        ],
+      ),
+      child: Icon(node['icon'], color: Colors.white, size: 32),
     );
   }
 
@@ -248,12 +232,11 @@ class _PathPageState extends State<PathPage> {
     return Positioned(
       bottom: 25,
       right: 25,
-      child: Container(
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Color(0xFF1E1E2E),
-          shape: BoxShape.circle,
-          border: Border.all(color: Color(0xFF03DAC6), width: 2),
+      child: FloatingActionButton(
+        backgroundColor: Color(0xFF1E1E2E),
+        onPressed: () {},
+        shape: CircleBorder(
+          side: BorderSide(color: Color(0xFF03DAC6), width: 2),
         ),
         child: Icon(Icons.insights, color: Color(0xFF03DAC6)),
       ),
