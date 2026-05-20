@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dashboard_page.dart';
+
+final TextEditingController fullNameController = TextEditingController();
+final TextEditingController emailController = TextEditingController();
+final TextEditingController usernameController = TextEditingController();
+final TextEditingController passwordController = TextEditingController();
 
 
 // --- PAGE 3: REGISTER PAGE ---
@@ -20,18 +26,41 @@ class RegisterPage extends StatelessWidget {
             children: [
               const Text('Join Spotlight', style: TextStyle(color: Colors.white, fontSize: 22)),
               const SizedBox(height: 30),
-              _buildTextField('Full Name'),
+              _buildTextField('Full Name', fullNameController),
               const SizedBox(height: 15),
-              _buildTextField('Email Address'),
+              _buildTextField('Email Address', emailController),
               const SizedBox(height: 15),
-              _buildTextField('Username'),
+              _buildTextField('Username', usernameController),
               const SizedBox(height: 15),
-              _buildTextField('Password', isPassword: true),
+              _buildTextField('Password', passwordController, isPassword: true),
               const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () {
-                  // This is where you'd save the data to the database!
-                }, 
+  // 1. First, check if the fields are actually filled
+  if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+    
+    // 2. This is where the "Check" happens
+    // For now, we use a 'mock' check. Later this will be a database query.
+    bool userAlreadyExists = false; 
+
+    if (userAlreadyExists) {
+      // 3. Show the pop-up (SnackBar)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This account already exists. Please login instead.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } else {
+      // 4. If everything is fine, go to the Dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardPage()),
+      );
+    }
+  }
+},
+              
                 style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                 child: const Text('Sign Up'),
               ),
@@ -43,16 +72,19 @@ class RegisterPage extends StatelessWidget {
      }
 
   // A small helper function to keep the code clean
-  Widget _buildTextField(String hint, {bool isPassword = false}) {
-    return TextField(
-      obscureText: isPassword,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint, 
-        filled: true, 
-        fillColor: const Color(0xFF151329),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-      ),
-    );
+  Widget _buildTextField(String hint, TextEditingController controller, {bool isPassword = false}) {
+  return TextField(
+    controller: controller, // This is the magic link!
+    obscureText: isPassword,
+    style: const TextStyle(color: Colors.white),
+    decoration: InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey),
+      filled: true,
+      fillColor: const Color(0xFF151325),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+ }
+    
   }
-}
