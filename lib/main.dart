@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'skills_page.dart';
-import 'stats_page.dart';
+import 'chat_page.dart';
 import 'profile_page.dart';
 import 'journal_page.dart';
 import 'widgets/dashboard_header.dart';
@@ -71,7 +71,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final pages = [
       DashboardView(onNavigateToProfile: () => _onTabTapped(3)),
-      const StatsPage(),
+     const ChatPage(),
       const SkillsPage(), // Practice tab
       ProfilePage(
         currentThemeMode: widget.currentThemeMode,
