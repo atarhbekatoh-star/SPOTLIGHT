@@ -87,7 +87,7 @@ class _MainScreenState extends State<MainScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Stats'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outlined), label: 'chat'),
           BottomNavigationBarItem(
             icon: Icon(Icons.psychology),
             label: 'Practice',

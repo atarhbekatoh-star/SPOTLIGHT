@@ -85,7 +85,7 @@ class ActiveListeningDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
 
-                // STATS GRID
+                // chats  GRID
                 Row(
                   children: [
                     _buildGojoStat(

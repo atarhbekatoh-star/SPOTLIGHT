@@ -152,7 +152,7 @@ class PublicSpeakingDetailPage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // SMALL STATS ROW
+                // SMALL chats ROW
                 Row(
                   children: [
                     _buildMiniStat(

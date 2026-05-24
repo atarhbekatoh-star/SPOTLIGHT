@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:multi_charts/multi_charts.dart';
 
-class StatsPage extends StatefulWidget {
-  const StatsPage({super.key});
+class chatPage extends StatefulWidget {
+  const chatPage({super.key});
 
   @override
-  State<StatsPage> createState() => _StatsPageState();
+  State<chatPage> createState() => _chatPageState();
 }
 
-class _StatsPageState extends State<StatsPage> {
+class _chatPageState extends State<chatPage> {
   bool _quizCompleted = false;
   int _currentIndex = 0;
 
