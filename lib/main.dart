@@ -71,7 +71,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final pages = [
       DashboardView(onNavigateToProfile: () => _onTabTapped(3)),
-     const ChatPage(),
+      ChatPage(),
       const SkillsPage(), // Practice tab
       ProfilePage(
         currentThemeMode: widget.currentThemeMode,
