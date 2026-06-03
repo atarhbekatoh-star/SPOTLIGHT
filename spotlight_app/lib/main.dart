@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'welcome_page.dart';
-import 'login_page.dart';
-import 'register_page.dart';
+import 'pages/practice_page.dart';
 
 void main() {
   runApp(const SpotlightApp());
@@ -17,15 +15,20 @@ class SpotlightApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Spotlight App',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF100E1E),
+        scaffoldBackgroundColor: const Color(0xFF0A0A14), // Deep black
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF423682),
-          surface: const Color(0xFF151329),
+          seedColor: const Color(0xFF7B3FF2), // Vibrant purple
+          surface: const Color(0xFF1a1a2e), // Dark purple-black
+          brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1a1a2e),
+          foregroundColor: Color(0xFF7B3FF2),
+        ),
       ),
-      // This tells Flutter to start on the Welcome Page!
-      home: const WelcomePage(), 
+      // This tells Flutter to start on the Practice Page for testing!
+      home: const PracticePage(), 
     );
   }
 }
