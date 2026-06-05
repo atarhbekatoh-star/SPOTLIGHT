@@ -4,11 +4,13 @@ import 'mbti_quiz_page.dart';
 class ProfilePage extends StatefulWidget {
   final ThemeMode currentThemeMode;
   final Function(ThemeMode) onThemeChanged;
+  final String userName;
 
   const ProfilePage({
     super.key,
     required this.currentThemeMode,
     required this.onThemeChanged,
+    required this.userName,
   });
 
   @override
@@ -20,7 +22,6 @@ class _ProfilePageState extends State<ProfilePage> {
   // USER DATA
   // -----------------------------
 
-  final String userName = "Sam";
   final String currentRank = "✨ Main Character";
 
   final int xp = 250;
@@ -167,7 +168,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 20),
 
                 Text(
-                  userName,
+                  widget.userName,
 
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 26,

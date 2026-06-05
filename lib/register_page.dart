@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'database_helper.dart';
 
 final TextEditingController fullNameController = TextEditingController();
 final TextEditingController emailController = TextEditingController();
@@ -99,22 +100,57 @@ class RegisterPage extends StatelessWidget {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
-                            bool userAlreadyExists = false; 
-                            if (userAlreadyExists) {
+                        onPressed: () async {
+                          if (fullNameController.text.isNotEmpty && 
+                              emailController.text.isNotEmpty && 
+                              usernameController.text.isNotEmpty && 
+                              passwordController.text.isNotEmpty) {
+                            
+                            try {
+                              Map<String, dynamic> newUser = {
+                                'fullName': fullNameController.text,
+                                'email': emailController.text,
+                                'username': usernameController.text,
+                                'password': passwordController.text,
+                              };
+
+                              int result = await DatabaseHelper.instance.createUser(newUser);
+
+                              if (!context.mounted) return;
+
+                              if (result == -1) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Username already exists. Please choose another.'),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              } else {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => MainScreen(
+                                    currentThemeMode: ThemeMode.dark, 
+                                    onThemeChanged: (mode) {},
+                                    userName: fullNameController.text.split(' ')[0],
+                                  )),
+                                );
+                              }
+                            } catch (e) {
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('This account already exists. Please login instead.'),
+                                SnackBar(
+                                  content: Text('Error: Please fully STOP and rerun the app. (Details: $e)'),
                                   backgroundColor: Colors.redAccent,
                                 ),
                               );
-                            } else {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => MainScreen(currentThemeMode: ThemeMode.dark, onThemeChanged: (mode) {})),
-                              );
                             }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please fill all the fields.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(

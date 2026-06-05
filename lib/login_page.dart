@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
-
+import 'database_helper.dart';
 
 // --- PAGE 2: LOGIN PAGE ---
 class LoginPage extends StatelessWidget {
@@ -92,11 +92,39 @@ class LoginPage extends StatelessWidget {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (usernameController.text.isNotEmpty && passwordController.text.isNotEmpty) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => MainScreen(currentThemeMode: ThemeMode.dark, onThemeChanged: (mode) {})),
+                            final user = await DatabaseHelper.instance.loginUser(
+                              usernameController.text, 
+                              passwordController.text
+                            );
+
+                            if (!context.mounted) return;
+
+                            if (user != null) {
+                              String fullName = user['fullName'] as String;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => MainScreen(
+                                  currentThemeMode: ThemeMode.dark, 
+                                  onThemeChanged: (mode) {},
+                                  userName: fullName.split(' ')[0],
+                                )),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Invalid username or password.'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter both username and password.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
                             );
                           }
                         },
