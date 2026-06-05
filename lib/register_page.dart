@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
-import 'dashboard_page.dart';
 
 final TextEditingController fullNameController = TextEditingController();
 final TextEditingController emailController = TextEditingController();
@@ -44,6 +43,7 @@ class RegisterPage extends StatelessWidget {
     // For now, we use a 'mock' check. Later this will be a database query.
     bool userAlreadyExists = false; 
 
+    // ignore: dead_code
     if (userAlreadyExists) {
       // 3. Show the pop-up (SnackBar)
       ScaffoldMessenger.of(context).showSnackBar(

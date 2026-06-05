@@ -262,7 +262,7 @@ class _MBTIQuizPageState extends State<MBTIQuizPage> {
           color: const Color(0xFF1B1830),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFF7B61FF).withOpacity(0.3),
+            color: const Color(0xFF7B61FF).withAlpha(77),
           ),
         ),
 

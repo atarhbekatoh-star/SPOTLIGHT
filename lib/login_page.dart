@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
-import 'dashboard_page.dart';
 
 
 // --- PAGE 2: LOGIN PAGE ---
