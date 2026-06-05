@@ -223,8 +223,4 @@ class MissionBoardController extends ChangeNotifier {
     };
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
