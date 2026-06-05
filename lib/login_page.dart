@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
 import 'dashboard_page.dart';
 
 
@@ -48,7 +49,7 @@ class LoginPage extends StatelessWidget {
               if (usernameController.text.isNotEmpty && passwordController.text.isNotEmpty) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const DashboardPage()),
+                  MaterialPageRoute(builder: (context) => MainScreen(currentThemeMode: ThemeMode.dark, onThemeChanged: (mode) {})),
                 );
               }
               },

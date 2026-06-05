@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
 import 'dashboard_page.dart';
 
 final TextEditingController fullNameController = TextEditingController();
@@ -55,7 +56,7 @@ class RegisterPage extends StatelessWidget {
       // 4. If everything is fine, go to the Dashboard
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardPage()),
+        MaterialPageRoute(builder: (context) => MainScreen(currentThemeMode: ThemeMode.dark, onThemeChanged: (mode) {})),
       );
     }
   }

@@ -1,3 +1,4 @@
+import 'welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'skills_page.dart';
@@ -35,10 +36,7 @@ class _MyAppState extends State<MyApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: MainScreen(
-        currentThemeMode: _themeMode,
-        onThemeChanged: _changeTheme,
-      ),
+      home: const WelcomePage(),
       debugShowCheckedModeBanner: false,
     );
   }
