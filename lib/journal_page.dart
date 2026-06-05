@@ -11,12 +11,12 @@ class _JournalPageState extends State<JournalPage> {
   int _selectedMoodIndex = -1;
   final TextEditingController _journalController = TextEditingController();
 
-  final List<IconData> _moods = [
-    Icons.sentiment_very_satisfied,
-    Icons.sentiment_satisfied,
-    Icons.sentiment_neutral,
-    Icons.sentiment_dissatisfied,
-    Icons.sentiment_very_dissatisfied,
+  final List<Map<String, String>> _moods = [
+    {'emoji': '😄', 'label': 'Joy'},
+    {'emoji': '😊', 'label': 'Happy'},
+    {'emoji': '😐', 'label': 'Moody'},
+    {'emoji': '😔', 'label': 'Sad'},
+    {'emoji': '😡', 'label': 'Angry'},
   ];
 
   @override
@@ -31,13 +31,13 @@ class _JournalPageState extends State<JournalPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios, color: purpleGlow),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "SAM JOURNAL",
+        title: Text(
+          "MY JORNAL",
           style: TextStyle(
-            color: Colors.white,
+            color: purpleGlow,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
           ),
@@ -50,9 +50,9 @@ class _JournalPageState extends State<JournalPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Your thoughts today...",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(color: purpleGlow.withAlpha(200), fontSize: 16),
             ),
             const SizedBox(height: 15),
 
@@ -62,7 +62,7 @@ class _JournalPageState extends State<JournalPage> {
               decoration: BoxDecoration(
                 color: cardBackground,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white10),
+                border: Border.all(color: purpleGlow.withAlpha(50)),
               ),
               child: TextField(
                 controller: _journalController,
@@ -83,41 +83,66 @@ class _JournalPageState extends State<JournalPage> {
             _buildActionButton("VOICE ENTRY", Icons.mic, purpleGlow),
 
             const SizedBox(height: 35),
-            const Text(
+            Text(
               "How do you feel?",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(color: purpleGlow.withAlpha(200), fontSize: 16),
             ),
             const SizedBox(height: 15),
 
             // MOOD SELECTOR
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: List.generate(_moods.length, (index) {
                 bool isSelected = _selectedMoodIndex == index;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedMoodIndex = index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? purpleGlow.withAlpha(51)
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: purpleGlow.withAlpha(77),
-                                blurRadius: 10,
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: Icon(
-                      _moods[index],
-                      color: isSelected ? purpleGlow : Colors.white24,
-                      size: 35,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? purpleGlow.withAlpha(51)
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: purpleGlow.withAlpha(77),
+                                    blurRadius: 10,
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: TextStyle(
+                            fontSize: isSelected ? 35 : 28,
+                          ),
+                          child: Text(
+                            _moods[index]['emoji']!,
+                          ),
+                        ),
+                      ),
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isSelected ? 1.0 : 0.0,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            _moods[index]['label']!,
+                            style: const TextStyle(
+                              color: purpleGlow,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }),
