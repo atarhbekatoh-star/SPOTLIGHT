@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'pages/practice_page.dart';
-
 void main() {
   runApp(const SpotlightApp());
 }
@@ -28,11 +26,23 @@ class SpotlightApp extends StatelessWidget {
         ),
       ),
       // This tells Flutter to start on the Practice Page for testing!
-      home: const PracticePage(), 
+      home: const PracticePage(),
     );
   }
 }
 
+class PracticePage extends StatelessWidget {
+  const PracticePage({super.key});
 
-
-        
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          'Practice Page',
+          style: TextStyle(color: Colors.white, fontSize: 22),
+        ),
+      ),
+    );
+  }
+}
