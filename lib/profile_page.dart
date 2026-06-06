@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
@@ -28,7 +30,7 @@ class _ProfilePageState extends State<ProfilePage> {
   // USER DATA
   // -----------------------------
 
-  final String bio = "Flutter enthusiast. Building cool apps! 🚀";
+  final String bio = "Flutter enthusiast. Lifelong learner. Coffee lover. Always striving to level up my skills and connect with amazing people in the tech community.";
 
   final int streakDays = 7;
   final int badges = 3;
@@ -38,6 +40,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final int mutualGroups = 3;
 
   bool isFollowing = false;
+
+  File? _selectedImage;
 
   // -----------------------------
   // MBTI DATA (UPDATABLE)
@@ -77,7 +81,17 @@ class _ProfilePageState extends State<ProfilePage> {
       aiInsight = result["insight"];
     });
   }
+Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+      print("User picked image: ${image.path}");
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -161,30 +175,41 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ],
                       ),
-
-                      child: const Icon(
-                        Icons.person,
-                        size: 55,
-                        color: Colors.white,
-                      ),
+                      child: _selectedImage == null
+                          ? const CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.transparent,
+                              child: Icon(Icons.person, size: 55, color: Colors.white),
+                            )
+                          : CircleAvatar(
+                              radius: 50,
+                              backgroundImage: FileImage(_selectedImage!),
+                            ),
                     ),
 
-                    Container(
-                      padding: const EdgeInsets.all(8),
-
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.black,
-                          width: 2,
+                    GestureDetector(
+                      onTap: () {
+                        print("Plus sign tapped!");
+                        // Logic to change profile picture
+                        _pickImage();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                      
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 2,
+                          ),
                         ),
-                      ),
-
-                      child: const Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                        size: 16,
+                      
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ],
