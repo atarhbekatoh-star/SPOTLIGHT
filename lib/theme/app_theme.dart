@@ -14,7 +14,7 @@ class AppTheme {
   static const Color _lightSubTextColor = Color(0xFF64748B);
 
   // Common Accent Colors
-  static const Color primaryAccent = Colors.purpleAccent;
+  static const Color primaryAccent = Color(0xFFBB86FC);
   static const Color secondaryAccent = Colors.blueAccent;
 
   static final ThemeData darkTheme = ThemeData(
