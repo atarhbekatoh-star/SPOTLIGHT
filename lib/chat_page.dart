@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'pages/chat/calls_page.dart';
+import 'pages/chat/channels_page.dart';
+import 'pages/chat/groups_page.dart';
 
 // Expanded Message Types to handle all requesting interaction modules
 enum MessageType { text, voice, sticker, image, poll }
@@ -173,9 +176,44 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0D0D0F),
-      body: ConnectionsDashboardPage(),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0D0D0F),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF16161A),
+          title: const Text('Chats', style: TextStyle(color: Colors.white)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFBB86FC)),
+              onPressed: () {},
+            ),
+            IconButton(
+              icon: const Icon(Icons.notifications_none, color: Color(0xFFEFFF8A)),
+              onPressed: () {},
+            ),
+          ],
+          bottom: const TabBar(
+            indicatorColor: Color(0xFFEFFF8A),
+            labelColor: Color(0xFFEFFF8A),
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(text: 'Messages'),
+              Tab(text: 'Calls'),
+              Tab(text: 'Channels'),
+              Tab(text: 'Groups'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            ConnectionsDashboardPage(),
+            CallsPage(),
+            ChannelsPage(),
+            GroupsPage(),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -215,14 +253,6 @@ class _ConnectionsDashboardPageState extends State<ConnectionsDashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0F),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0D0D0F),
-        elevation: 0,
-        title: const Text(
-          "Co-Star Hub",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

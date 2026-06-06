@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'providers/chat_provider.dart';
+import 'providers/app_provider.dart';
 import 'welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
@@ -11,7 +14,17 @@ import 'widgets/daily_mission_card.dart';
 import 'widgets/continue_learning_list.dart';
 import 'widgets/quick_actions_grid.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => AppProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});

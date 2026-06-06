@@ -1,79 +1,114 @@
 import 'package:flutter/material.dart';
-import 'skills_start_conversations.dart';
-import 'skill_public_speaking.dart';
-import 'skill_active_listening.dart';
-import 'skill_body_language.dart';
+import 'models/skill_models.dart';
+import 'pages/skill_detail_page.dart';
+import 'pages/scenario_simulator_page.dart';
 
-class SkillsPage extends StatelessWidget {
+class SkillsPage extends StatefulWidget {
   const SkillsPage({super.key});
 
   @override
+  State<SkillsPage> createState() => _SkillsPageState();
+}
+
+class _SkillsPageState extends State<SkillsPage> {
+  late List<SkillCategory> categories;
+
+  @override
+  void initState() {
+    super.initState();
+    categories = getSkillCategories();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final List<Map<String, dynamic>> skills = [
-      {
-        "title": "Start Conversations",
-        "level": "Level 2",
-        "xp": "320 / 300",
-        "progress": 1.0,
-        "icon": Icons.chat_bubble,
-        "color": Colors.blueAccent,
-        "isLocked": false,
-      },
-      {
-        "title": "Public Speaking",
-        "level": "Level 1",
-        "xp": "80 / 200",
-        "progress": 0.4,
-        "icon": Icons.mic,
-        "color": Colors.orangeAccent,
-        "isLocked": false,
-      },
-      {
-        "title": "Active Listening",
-        "level": "Level 1",
-        "xp": "60 / 200",
-        "progress": 0.3,
-        "icon": Icons.hearing,
-        "color": Colors.purpleAccent,
-        "isLocked": false,
-      },
-      {
-        "title": "Body Language",
-        "level": "Level 1",
-        "xp": "40 / 200",
-        "progress": 0.2,
-        "icon": Icons.person,
-        "color": Colors.tealAccent,
-        "isLocked": false,
-      },
-      {
-        "title": "Persuasion",
-        "level": "Locked",
-        "xp": "0 / 500",
-        "progress": 0.0,
-        "icon": Icons.bolt,
-        "color": Colors.grey,
-        "isLocked": true,
-      },
-    ];
-
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0F),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text(
+        title: const Text(
           "Practice",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: theme.textTheme.titleLarge?.color,
+            color: Colors.white,
+            fontSize: 24,
+            letterSpacing: 1.2,
           ),
         ),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Social Simulator Mini-Game Banner
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ScenarioSimulatorPage()),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E1E1E), Color(0xFF2C2C2C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFBB86FC).withOpacity(0.5), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFBB86FC).withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    )
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBB86FC).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.videogame_asset, color: Color(0xFFBB86FC), size: 32),
+                    ),
+                    const SizedBox(width: 15),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Social Simulator",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Play the mini-game to earn XP and Credits!",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.play_arrow, color: Color(0xFFBB86FC), size: 28),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           // The active "Task to Practice" section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -81,11 +116,18 @@ class SkillsPage extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Colors.teal, Color(0xFF004D40)],
+                  colors: [Color(0xFFBB86FC), Color(0xFF6200EA)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFBB86FC).withAlpha(50),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  )
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +141,7 @@ class SkillsPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        "Today's Practice Task",
+                        "Daily Introvert Challenge",
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -117,7 +159,7 @@ class SkillsPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Text(
-                          "15 Min",
+                          "5 Min",
                           style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ),
@@ -125,7 +167,7 @@ class SkillsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    "Mirroring Body Language",
+                    "The Easy Ask",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -134,7 +176,7 @@ class SkillsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Try to subtly mirror the posture and hand gestures of the person you are talking to today. This builds subconscious rapport.",
+                    "Ask a barista or cashier how their day is going. Low-stakes interactions build momentum without overwhelming your amygdala.",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
@@ -146,22 +188,23 @@ class SkillsPage extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Practice session started!"),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SkillDetailPage(category: categories[0]),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: Colors.teal,
+                        foregroundColor: const Color(0xFF6200EA),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
-                        "Start Exercise",
+                        "Start Challenge",
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -172,12 +215,14 @@ class SkillsPage extends StatelessWidget {
           ),
 
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "ALL SKILLS",
-                style: theme.textTheme.titleSmall?.copyWith(letterSpacing: 1.2),
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 10),
+            child: Text(
+              "SKILL CATEGORIES",
+              style: TextStyle(
+                color: Colors.white.withAlpha(150),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
               ),
             ),
           ),
@@ -185,9 +230,9 @@ class SkillsPage extends StatelessWidget {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: skills.length,
+              itemCount: categories.length,
               itemBuilder: (context, index) {
-                return _buildVerticalSkillCard(context, skills[index]);
+                return _buildVerticalSkillCard(context, categories[index]);
               },
             ),
           ),
@@ -196,156 +241,116 @@ class SkillsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildVerticalSkillCard(
-    BuildContext context,
-    Map<String, dynamic> skill,
-  ) {
-    bool isLocked = skill['isLocked'];
-    final theme = Theme.of(context);
+  Widget _buildVerticalSkillCard(BuildContext context, SkillCategory category) {
+    int completedCount = category.missions.where((m) => m.isCompleted).length;
+    int totalCount = category.missions.length;
+    double progress = totalCount > 0 ? completedCount / totalCount : 0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: InkWell(
         onTap: () {
-          if (isLocked) {
-            _showLockedMessage(context, skill['title']);
-          } else {
-            if (skill['title'] == "Start Conversations") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StartConversationsDetailPage(),
-                ),
-              );
-            } else if (skill['title'] == "Public Speaking") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PublicSpeakingDetailPage(),
-                ),
-              );
-            } else if (skill['title'] == "Active Listening") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ActiveListeningDetailPage(),
-                ),
-              );
-            } else if (skill['title'] == "Body Language") {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BodyLanguageDetailPage(),
-                ),
-              );
-            } else {
-              _showSkillDetail(context, skill['title']);
-            }
-          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SkillDetailPage(category: category),
+            ),
+          ).then((_) {
+            // Refresh to show updated progress
+            setState(() {});
+          });
         },
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: theme.cardColor,
+            color: const Color(0xFF16161A),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isLocked
-                  ? theme.textTheme.titleSmall!.color!.withAlpha(30)
-                  : theme.primaryColor.withAlpha(20),
+              color: category.color.withAlpha(30),
             ),
           ),
-          child: Opacity(
-            opacity: isLocked ? 0.5 : 1.0,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: (skill['color'] as Color).withAlpha(30),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        isLocked ? Icons.lock : skill['icon'],
-                        color: skill['color'],
-                        size: 28,
-                      ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: category.color.withAlpha(30),
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            skill['title'],
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            skill['level'],
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: Icon(
+                      category.icon,
+                      color: category.color,
+                      size: 28,
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      color: theme.textTheme.titleSmall?.color,
-                      size: 14,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      "${skill['xp']} XP",
-                      style: theme.textTheme.titleSmall?.copyWith(fontSize: 11),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: skill['progress'],
-                    backgroundColor: theme.scaffoldBackgroundColor,
-                    color: skill['color'],
-                    minHeight: 8,
                   ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          category.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          category.subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(150),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white.withAlpha(100),
+                    size: 14,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Day $completedCount of $totalCount",
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(150),
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    "${(progress * 100).toInt()}%",
+                    style: TextStyle(
+                      color: category.color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: const Color(0xFF0D0D0F),
+                  color: category.color,
+                  minHeight: 6,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showSkillDetail(BuildContext context, String title) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("The cinematic $title screen is coming soon!"),
-        backgroundColor: Colors.deepPurple,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showLockedMessage(BuildContext context, String title) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Reach Level 5 to unlock $title!"),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }

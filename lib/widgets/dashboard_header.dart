@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../database_helper.dart';
+import '../providers/app_provider.dart';
+import '../pages/shop_page.dart';
 
 class DashboardHeader extends StatefulWidget {
   final VoidCallback onProfileTap;
@@ -57,6 +60,35 @@ class _DashboardHeaderState extends State<DashboardHeader> {
             ),
             Row(
               children: [
+                // Credits / Shop button
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopPage()));
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFFF8A).withAlpha(30),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.store, color: Color(0xFFEFFF8A), size: 16),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.stars, color: Color(0xFFEFFF8A), size: 14),
+                        const SizedBox(width: 2),
+                        Text(
+                          "${context.watch<AppProvider>().credits}",
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFFEFFF8A),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 // Streak badge
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -83,6 +115,33 @@ class _DashboardHeaderState extends State<DashboardHeader> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Daily Reward button
+                GestureDetector(
+                  onTap: () async {
+                    final appProvider = context.read<AppProvider>();
+                    final messenger = ScaffoldMessenger.of(context);
+                    bool claimed = await appProvider.claimDailyReward();
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            claimed ? 'Daily Reward Claimed! +25 Credits 🎁' : 'Already claimed today! Come back tomorrow.',
+                          ),
+                          backgroundColor: claimed ? Colors.green : Colors.orange,
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withAlpha(30),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(Icons.card_giftcard, color: Colors.green, size: 18),
                   ),
                 ),
                 const SizedBox(width: 15),

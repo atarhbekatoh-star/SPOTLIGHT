@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/app_provider.dart';
 import 'mbti_quiz_page.dart';
+import 'pages/chat/qr_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ThemeMode currentThemeMode;
@@ -24,14 +27,16 @@ class _ProfilePageState extends State<ProfilePage> {
   // USER DATA
   // -----------------------------
 
-  final String currentRank = "✨ Main Character";
-
-  final int xp = 250;
-  final int maxXp = 500;
+  final String bio = "Flutter enthusiast. Building cool apps! 🚀";
 
   final int streakDays = 7;
   final int badges = 3;
   final int weeklyProgress = 68;
+
+  final int mutualFriends = 12;
+  final int mutualGroups = 3;
+
+  bool isFollowing = false;
 
   // -----------------------------
   // MBTI DATA (UPDATABLE)
@@ -75,6 +80,12 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appProvider = context.watch<AppProvider>();
+    final int xp = appProvider.xp;
+    final int level = appProvider.level;
+    final int nextLevelXp = appProvider.nextLevelXp;
+    final double progressToNextLevel = appProvider.progressToNextLevel;
+    final String currentRank = "✨ ${appProvider.currentRank}";
 
     final isDarkMode =
         widget.currentThemeMode == ThemeMode.dark ||
@@ -96,6 +107,17 @@ class _ProfilePageState extends State<ProfilePage> {
             color: theme.textTheme.titleLarge?.color,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFBB86FC)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QRPage()),
+              );
+            },
+          ),
+        ],
       ),
 
       body: ListView(
@@ -190,7 +212,21 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
 
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    bio,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
 
                 Text(
                   currentRank,
@@ -200,6 +236,57 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // FOLLOW / MESSAGE BUTTONS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          isFollowing = !isFollowing;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isFollowing ? Colors.transparent : const Color(0xFFBB86FC),
+                        foregroundColor: isFollowing ? const Color(0xFFBB86FC) : Colors.white,
+                        side: const BorderSide(color: Color(0xFFBB86FC), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: Text(isFollowing ? "Following" : "Follow"),
+                    ),
+                    const SizedBox(width: 15),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Message logic
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF16161A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text("Message"),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // MUTUALS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("$mutualFriends Mutual Friends", style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                    const SizedBox(width: 15),
+                    const Text("•", style: TextStyle(color: Colors.white54)),
+                    const SizedBox(width: 15),
+                    Text("$mutualGroups Mutual Groups", style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
@@ -274,10 +361,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   CrossAxisAlignment.start,
 
               children: [
-                const Text(
-                  "LEVEL PROGRESS",
+                Text(
+                  "LEVEL $level",
 
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white70,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.bold,
@@ -287,7 +374,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 15),
 
                 Text(
-                  "$xp / $maxXp XP",
+                  "$xp / $nextLevelXp XP",
 
                   style: const TextStyle(
                     color: Colors.white,
@@ -303,7 +390,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       BorderRadius.circular(20),
 
                   child: LinearProgressIndicator(
-                    value: xp / maxXp,
+                    value: progressToNextLevel,
                     minHeight: 10,
                     backgroundColor: Colors.white24,
 
