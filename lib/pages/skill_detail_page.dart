@@ -5,8 +5,9 @@ import '../providers/app_provider.dart';
 
 class SkillDetailPage extends StatelessWidget {
   final SkillCategory category;
+  final int categoryIndex;
 
-  const SkillDetailPage({super.key, required this.category});
+  const SkillDetailPage({super.key, required this.category, required this.categoryIndex});
 
   void _showMissionDetail(BuildContext context, Mission mission) {
     showModalBottomSheet(
@@ -14,7 +15,7 @@ class SkillDetailPage extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return _MissionDetailSheet(mission: mission, categoryColor: category.color);
+        return _MissionDetailSheet(mission: mission, categoryColor: category.color, categoryIndex: categoryIndex);
       },
     );
   }
@@ -151,10 +152,12 @@ class SkillDetailPage extends StatelessWidget {
 class _MissionDetailSheet extends StatefulWidget {
   final Mission mission;
   final Color categoryColor;
+  final int categoryIndex;
 
   const _MissionDetailSheet({
     required this.mission,
     required this.categoryColor,
+    required this.categoryIndex,
   });
 
   @override
@@ -168,7 +171,7 @@ class _MissionDetailSheetState extends State<_MissionDetailSheet> {
         widget.mission.isCompleted = true;
       });
       Provider.of<AppProvider>(context, listen: false)
-          .completeMission(widget.mission.xpReward, widget.mission.creditReward);
+          .completePracticeTask(widget.categoryIndex, widget.mission.xpReward, widget.mission.creditReward);
       
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(

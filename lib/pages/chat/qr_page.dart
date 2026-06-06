@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class QRPage extends StatefulWidget {
   const QRPage({super.key});
@@ -100,6 +101,25 @@ class _QRPageState extends State<QRPage> with SingleTickerProviderStateMixin {
             style: TextStyle(
               color: Color(0xFFBB86FC),
               fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: 'https://spotlight.app/qr/sandra_user'));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Profile link copied to clipboard! Share it with friends.'),
+                  backgroundColor: Color(0xFFBB86FC),
+                ),
+              );
+            },
+            icon: const Icon(Icons.share, color: Colors.white),
+            label: const Text('Share Profile', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFBB86FC).withAlpha(80),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],

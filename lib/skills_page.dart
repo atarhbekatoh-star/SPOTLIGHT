@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/app_provider.dart';
 import 'models/skill_models.dart';
 import 'pages/skill_detail_page.dart';
 import 'pages/scenario_simulator_page.dart';
@@ -21,6 +23,11 @@ class _SkillsPageState extends State<SkillsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appProvider = context.watch<AppProvider>();
+    final isPracticeLocked = appProvider.isPracticeLocked;
+    final currentPracticeStep = appProvider.currentPracticeStep;
+    final remainingTime = appProvider.practiceLockRemainingTime;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0F),
       appBar: AppBar(
@@ -187,11 +194,11 @@ class _SkillsPageState extends State<SkillsPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: isPracticeLocked ? null : () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SkillDetailPage(category: categories[0]),
+                            builder: (context) => SkillDetailPage(category: categories[0], categoryIndex: 0),
                           ),
                         );
                       },
@@ -216,14 +223,28 @@ class _SkillsPageState extends State<SkillsPage> {
 
           Padding(
             padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 10),
-            child: Text(
-              "SKILL CATEGORIES",
-              style: TextStyle(
-                color: Colors.white.withAlpha(150),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "SKILL CATEGORIES",
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(150),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                if (isPracticeLocked)
+                  Text(
+                    "Locked - Come back in $remainingTime",
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
             ),
           ),
 
@@ -232,7 +253,7 @@ class _SkillsPageState extends State<SkillsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: categories.length,
               itemBuilder: (context, index) {
-                return _buildVerticalSkillCard(context, categories[index]);
+                return _buildVerticalSkillCard(context, categories[index], index, currentPracticeStep, isPracticeLocked);
               },
             ),
           ),
@@ -241,26 +262,39 @@ class _SkillsPageState extends State<SkillsPage> {
     );
   }
 
-  Widget _buildVerticalSkillCard(BuildContext context, SkillCategory category) {
+  Widget _buildVerticalSkillCard(BuildContext context, SkillCategory category, int index, int currentStep, bool isPracticeLocked) {
     int completedCount = category.missions.where((m) => m.isCompleted).length;
     int totalCount = category.missions.length;
     double progress = totalCount > 0 ? completedCount / totalCount : 0;
 
+    // Strict Sequence: Persuasion (index 4) isn't explicitly in the 0-3 loop, 
+    // but if we are at step 4 it's locked. We just let it be locked if index != currentStep
+    bool isLocked = isPracticeLocked || index != currentStep;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SkillDetailPage(category: category),
-            ),
-          ).then((_) {
-            // Refresh to show updated progress
-            setState(() {});
-          });
-        },
-        borderRadius: BorderRadius.circular(20),
+      child: Opacity(
+        opacity: isLocked ? 0.5 : 1.0,
+        child: InkWell(
+          onTap: isLocked ? () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(isPracticeLocked ? "Practice is locked for 24 hours. Come back tomorrow!" : "Complete the previous category first!"),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          } : () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SkillDetailPage(category: category, categoryIndex: index),
+              ),
+            ).then((_) {
+              // Refresh to show updated progress
+              setState(() {});
+            });
+          },
+          borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -310,11 +344,18 @@ class _SkillsPageState extends State<SkillsPage> {
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.white.withAlpha(100),
-                    size: 14,
-                  ),
+                  if (isLocked)
+                    Icon(
+                      Icons.lock,
+                      color: Colors.white.withAlpha(100),
+                      size: 16,
+                    )
+                  else
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white.withAlpha(100),
+                      size: 14,
+                    ),
                 ],
               ),
               const SizedBox(height: 15),
@@ -350,6 +391,7 @@ class _SkillsPageState extends State<SkillsPage> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

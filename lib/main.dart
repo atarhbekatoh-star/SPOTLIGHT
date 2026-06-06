@@ -10,6 +10,7 @@ import 'profile_page.dart';
 import 'journal_page.dart';
 import 'reminder_page.dart';
 import 'widgets/dashboard_header.dart';
+import 'widgets/global_search_bar.dart';
 import 'widgets/daily_mission_card.dart';
 import 'widgets/continue_learning_list.dart';
 import 'widgets/quick_actions_grid.dart';
@@ -34,16 +35,14 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final ThemeMode _themeMode =
-      ThemeMode.dark; // Default to dark as per existing design
-
   @override
   Widget build(BuildContext context) {
+    final appProvider = context.watch<AppProvider>();
     return MaterialApp(
       title: 'Spotlight',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
+      themeMode: appProvider.themeMode,
       home: const WelcomePage(),
       debugShowCheckedModeBanner: false,
     );
@@ -175,6 +174,8 @@ class DashboardView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DashboardHeader(onProfileTap: onNavigateToProfile, userName: userName),
+                  const SizedBox(height: 20),
+                  GlobalSearchBar(currentUsername: userName),
                   const SizedBox(height: 30),
 
                   Row(
@@ -204,14 +205,7 @@ class DashboardView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Text(
-                        "See All",
-                        style: TextStyle(
-                          color: purpleGlow,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+
                     ],
                   ),
                   const SizedBox(height: 15),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
 import 'mbti_quiz_page.dart';
 import 'pages/chat/qr_page.dart';
+import 'welcome_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ThemeMode currentThemeMode;
@@ -88,8 +89,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final String currentRank = "✨ ${appProvider.currentRank}";
 
     final isDarkMode =
-        widget.currentThemeMode == ThemeMode.dark ||
-        (widget.currentThemeMode == ThemeMode.system &&
+        appProvider.themeMode == ThemeMode.dark ||
+        (appProvider.themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness ==
                 Brightness.dark);
 
@@ -692,7 +693,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               onChanged: (bool value) {
-                widget.onThemeChanged(
+                appProvider.setThemeMode(
                   value
                       ? ThemeMode.dark
                       : ThemeMode.light,
@@ -723,13 +724,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               onTap: () {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Settings coming soon!",
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
                 );
               },
             ),
@@ -821,6 +818,73 @@ class _ProfilePageState extends State<ProfilePage> {
 
           child,
         ],
+      ),
+    );
+  }
+}
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text("Settings"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _buildSettingsTile(
+            context,
+            icon: Icons.person,
+            title: "Account Settings",
+            onTap: () {},
+          ),
+          _buildSettingsTile(
+            context,
+            icon: Icons.lock,
+            title: "Privacy",
+            onTap: () {},
+          ),
+          _buildSettingsTile(
+            context,
+            icon: Icons.notifications,
+            title: "Notifications",
+            onTap: () {},
+          ),
+          const SizedBox(height: 20),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const WelcomePage()),
+                (Route<dynamic> route) => false,
+              );
+            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            tileColor: theme.cardColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: ListTile(
+        leading: Icon(icon, color: const Color(0xFFBB86FC)),
+        title: Text(title),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        tileColor: Theme.of(context).cardColor,
+        onTap: onTap,
       ),
     );
   }

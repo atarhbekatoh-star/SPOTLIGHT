@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'pages/chat/calls_page.dart';
 import 'pages/chat/channels_page.dart';
 import 'pages/chat/groups_page.dart';
+import 'pages/chat/notifications_page.dart';
+import 'pages/other_user_profile_page.dart';
 
 // Expanded Message Types to handle all requesting interaction modules
 enum MessageType { text, voice, sticker, image, poll }
@@ -190,7 +192,12 @@ class _ChatPageState extends State<ChatPage> {
             ),
             IconButton(
               icon: const Icon(Icons.notifications_none, color: Color(0xFFEFFF8A)),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NotificationsPage()),
+                );
+              },
             ),
           ],
           bottom: const TabBar(
@@ -205,7 +212,7 @@ class _ChatPageState extends State<ChatPage> {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
             ConnectionsDashboardPage(),
             CallsPage(),

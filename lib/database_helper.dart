@@ -4,6 +4,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io' show Platform, Directory;
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -22,14 +24,48 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final fullPath = join(dbPath, filePath);
+    String fullPath;
+    if (kIsWeb) {
+      final dbPath = await getDatabasesPath();
+      fullPath = join(dbPath, filePath);
+    } else {
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        sqfliteFfiInit();
+        databaseFactory = databaseFactoryFfi;
+        fullPath = join(Directory.current.path, filePath);
+      } else {
+        final dbPath = await getDatabasesPath();
+        fullPath = join(dbPath, filePath);
+      }
+    }
 
     return await openDatabase(
       fullPath,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+CREATE TABLE IF NOT EXISTS follows (
+  follower TEXT NOT NULL,
+  following TEXT NOT NULL,
+  PRIMARY KEY (follower, following)
+)
+''');
+
+      await db.execute('''
+CREATE TABLE IF NOT EXISTS friend_requests (
+  sender TEXT NOT NULL,
+  receiver TEXT NOT NULL,
+  status TEXT NOT NULL,
+  PRIMARY KEY (sender, receiver)
+)
+''');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -61,6 +97,33 @@ CREATE TABLE notifications (
   body TEXT,
   time TEXT,
   read INTEGER
+)
+''');
+
+    await db.execute('''
+CREATE TABLE journals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  text TEXT,
+  mood TEXT,
+  imagePath TEXT,
+  voiceNote TEXT,
+  date TEXT
+)
+''');
+
+    await db.execute('''
+CREATE TABLE follows (
+  follower TEXT NOT NULL,
+  following TEXT NOT NULL,
+  PRIMARY KEY (follower, following)
+)
+''');
+
+    await db.execute('''
+CREATE TABLE friend_requests (
+  sender TEXT NOT NULL,
+  receiver TEXT NOT NULL,
+  status TEXT NOT NULL
 )
 ''');
   }
@@ -185,6 +248,22 @@ CREATE TABLE notifications (
     }
 
     return null;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllUsers([String? excludeUsername]) async {
+    final db = await instance.database;
+    final result = await db.query('users');
+    
+    List<Map<String, dynamic>> users = [];
+    for (var row in result) {
+      if (excludeUsername != null && row['username'] == excludeUsername) continue;
+      Map<String, dynamic> user = Map<String, dynamic>.from(row);
+      if (user['extraData'] != null) {
+        user.addAll(jsonDecode(user['extraData'] as String));
+      }
+      users.add(user);
+    }
+    return users;
   }
 
   // ========================
@@ -347,5 +426,134 @@ CREATE TABLE notifications (
         whereArgs: [row['id']],
       );
     }
+  }
+
+  // ========================
+  // JOURNALS
+  // ========================
+
+  Future<void> createJournal(Map<String, dynamic> journal) async {
+    final db = await instance.database;
+    await db.insert('journals', journal);
+  }
+
+  Future<List<Map<String, dynamic>>> readAllJournals() async {
+    final db = await instance.database;
+    final orderBy = 'date DESC';
+    final result = await db.query('journals', orderBy: orderBy);
+    return result;
+  }
+
+  // ========================
+  // SOCIAL / CONNECTIONS
+  // ========================
+
+  Future<void> sendFriendRequest(String sender, String receiver) async {
+    final db = await instance.database;
+    await db.insert('friend_requests', {
+      'sender': sender,
+      'receiver': receiver,
+      'status': 'pending'
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await addNotification(receiver, 'New Friend Request', '$sender sent you a friend request');
+  }
+
+  Future<void> acceptFriendRequest(String sender, String receiver) async {
+    final db = await instance.database;
+    await db.update(
+      'friend_requests',
+      {'status': 'accepted'},
+      where: 'sender = ? AND receiver = ?',
+      whereArgs: [sender, receiver],
+    );
+    await addNotification(sender, 'Friend Request Accepted', '$receiver accepted your friend request');
+  }
+
+  Future<void> declineFriendRequest(String sender, String receiver) async {
+    final db = await instance.database;
+    await db.update(
+      'friend_requests',
+      {'status': 'declined'},
+      where: 'sender = ? AND receiver = ?',
+      whereArgs: [sender, receiver],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingFriendRequests(String username) async {
+    final db = await instance.database;
+    return await db.query(
+      'friend_requests',
+      where: 'receiver = ? AND status = ?',
+      whereArgs: [username, 'pending'],
+    );
+  }
+
+  Future<void> followUser(String follower, String following) async {
+    final db = await instance.database;
+    await db.insert('follows', {
+      'follower': follower,
+      'following': following
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await addNotification(following, 'New Follower', '$follower started following you');
+  }
+
+  Future<void> unfollowUser(String follower, String following) async {
+    final db = await instance.database;
+    await db.delete(
+      'follows',
+      where: 'follower = ? AND following = ?',
+      whereArgs: [follower, following],
+    );
+  }
+
+  Future<Map<String, bool>> checkConnectionStatus(String me, String them) async {
+    final db = await instance.database;
+    
+    final followResult = await db.query(
+      'follows',
+      where: 'follower = ? AND following = ?',
+      whereArgs: [me, them],
+    );
+    bool isFollowing = followResult.isNotEmpty;
+
+    final friendResult = await db.query(
+      'friend_requests',
+      where: '((sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)) AND status = ?',
+      whereArgs: [me, them, them, me, 'accepted'],
+    );
+    bool isFriend = friendResult.isNotEmpty;
+
+    final pendingResult = await db.query(
+      'friend_requests',
+      where: 'sender = ? AND receiver = ? AND status = ?',
+      whereArgs: [me, them, 'pending'],
+    );
+    bool isPendingRequest = pendingResult.isNotEmpty;
+
+    return {
+      'isFollowing': isFollowing,
+      'isFriend': isFriend,
+      'isPendingRequest': isPendingRequest,
+    };
+  }
+
+  Future<List<String>> getFollowers(String username) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'follows',
+      where: 'following = ?',
+      whereArgs: [username],
+    );
+    return result.map((row) => row['follower'] as String).toList();
+  }
+
+  Future<List<String>> getFollowing(String username) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'follows',
+      where: 'follower = ?',
+      whereArgs: [username],
+    );
+    return result.map((row) => row['following'] as String).toList();
   }
 }

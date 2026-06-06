@@ -120,21 +120,7 @@ class _DashboardHeaderState extends State<DashboardHeader> {
                 const SizedBox(width: 10),
                 // Daily Reward button
                 GestureDetector(
-                  onTap: () async {
-                    final appProvider = context.read<AppProvider>();
-                    final messenger = ScaffoldMessenger.of(context);
-                    bool claimed = await appProvider.claimDailyReward();
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            claimed ? 'Daily Reward Claimed! +25 Credits 🎁' : 'Already claimed today! Come back tomorrow.',
-                          ),
-                          backgroundColor: claimed ? Colors.green : Colors.orange,
-                        ),
-                      );
-                    }
-                  },
+                  onTap: () => _showDailyRewardModal(context),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
@@ -358,4 +344,183 @@ class _DashboardHeaderState extends State<DashboardHeader> {
       },
     );
   }
+
+  void _showDailyRewardModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF060914),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return const _DailyRewardSheet();
+      },
+    );
+  }
 }
+
+class _DailyRewardSheet extends StatelessWidget {
+  const _DailyRewardSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final appProvider = context.watch<AppProvider>();
+    final canClaim = appProvider.canClaimDailyReward;
+    final rewardStreak = appProvider.rewardStreak;
+    
+    // Determine the current 7-day cycle.
+    int currentCycle = rewardStreak ~/ 7;
+    int cycleStartDay = currentCycle * 7;
+    int itemsToShow = 7;
+
+    // If we just claimed day 7, rewardStreak is a multiple of 7 and canClaim is false.
+    // In that case, we want to show the completed 7-day cycle.
+    if (rewardStreak > 0 && rewardStreak % 7 == 0 && !canClaim) {
+      cycleStartDay = (currentCycle - 1) * 7;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 25),
+            const Text(
+              'Daily Rewards',
+              style: TextStyle(
+                color: Colors.green,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              canClaim ? 'Claim your reward for today!' : 'You have claimed your reward today. Come back tomorrow!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withAlpha(150),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 25),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: itemsToShow,
+              itemBuilder: (context, index) {
+                int absoluteDay = cycleStartDay + index;
+                bool isClaimed = absoluteDay < rewardStreak;
+                bool isClaimable = absoluteDay == rewardStreak && canClaim;
+                bool isLocked = !isClaimed && !isClaimable;
+                
+                int rewardCredits = (index + 1) * 10;
+                if (index == 6) rewardCredits = 100;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isClaimed 
+                        ? Colors.green.withAlpha(20) 
+                        : (isClaimable ? Colors.orange.withAlpha(30) : const Color(0xFF11162D)),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: isClaimed 
+                          ? Colors.green.withAlpha(100) 
+                          : (isClaimable ? Colors.orange : Colors.white.withAlpha(20)),
+                      width: isClaimable ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Day ${index + 1}',
+                        style: TextStyle(
+                          color: isClaimable ? Colors.orange : Colors.white.withAlpha(150),
+                          fontSize: 12,
+                          fontWeight: isClaimable ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Icon(
+                        index == 6 ? Icons.stars : Icons.monetization_on,
+                        color: isClaimed ? Colors.green : (isClaimable ? Colors.orange : Colors.white.withAlpha(50)),
+                        size: 24,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '+$rewardCredits',
+                        style: TextStyle(
+                          color: isClaimed ? Colors.green : (isClaimable ? Colors.orange : Colors.white.withAlpha(100)),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (isLocked)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Icon(Icons.lock, color: Colors.white30, size: 12),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: canClaim ? () async {
+                  bool claimed = await appProvider.claimDailyReward();
+                  if (context.mounted && claimed) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Daily Reward Claimed! 🎁'),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                } : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  disabledBackgroundColor: Colors.green.withAlpha(50),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: Text(
+                  canClaim ? 'Claim Reward' : 'Already Claimed',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

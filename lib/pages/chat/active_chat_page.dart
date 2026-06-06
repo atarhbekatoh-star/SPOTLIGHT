@@ -1,4 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+import '../../widgets/chat/chat_bubble.dart';
+import 'call_screen.dart';
 
 class ActiveChatPage extends StatefulWidget {
   final String userName;
@@ -16,11 +22,60 @@ class ActiveChatPage extends StatefulWidget {
 
 class _ActiveChatPageState extends State<ActiveChatPage> {
   final TextEditingController _messageController = TextEditingController();
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  final ScrollController _scrollController = ScrollController();
+  bool _isRecording = false;
+  final List<Map<String, dynamic>> _messages = [];
 
   @override
   void dispose() {
     _messageController.dispose();
+    _audioRecorder.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  String _currentTime() {
+    final now = DateTime.now();
+    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _sendMessage(String text) {
+    if (text.trim().isEmpty) return;
+    setState(() {
+      _messages.add({
+        'text': text,
+        'isMe': true,
+        'time': _currentTime(),
+      });
+    });
+    _messageController.clear();
+    _scrollToBottom();
+
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _messages.add({
+            'text': 'Simulated reply to: $text',
+            'isMe': false,
+            'time': _currentTime(),
+          });
+        });
+        _scrollToBottom();
+      }
+    });
   }
 
   @override
@@ -60,21 +115,25 @@ class _ActiveChatPageState extends State<ActiveChatPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.call, color: Color(0xFFBB86FC)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.videocam, color: Color(0xFFBB86FC)),
-            onPressed: () {},
+            onPressed: _showCallPrompt,
           ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView(
+            child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              // Dummy chat bubbles can go here
-              children: const [],
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final msg = _messages[index];
+                return ChatBubble(
+                  message: msg['text'],
+                  isMe: msg['isMe'],
+                  time: msg['time'],
+                );
+              },
             ),
           ),
           _buildInputArea(),
@@ -106,7 +165,7 @@ class _ActiveChatPageState extends State<ActiveChatPage> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.emoji_emotions_outlined, color: Colors.grey),
-                      onPressed: () {},
+                      onPressed: _showEmojiPicker,
                     ),
                     Expanded(
                       child: TextField(
@@ -117,6 +176,7 @@ class _ActiveChatPageState extends State<ActiveChatPage> {
                           hintStyle: TextStyle(color: Colors.grey),
                           border: InputBorder.none,
                         ),
+                        onSubmitted: _sendMessage,
                       ),
                     ),
                   ],
@@ -125,15 +185,95 @@ class _ActiveChatPageState extends State<ActiveChatPage> {
             ),
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: const Color(0xFFBB86FC),
+              backgroundColor: _isRecording ? Colors.red : const Color(0xFFBB86FC),
               child: IconButton(
-                icon: const Icon(Icons.mic, color: Colors.white),
-                onPressed: () {},
+                icon: Icon(_isRecording ? Icons.stop : Icons.mic, color: Colors.white),
+                onPressed: _toggleRecording,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showCallPrompt() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF16161A),
+        title: const Text('Start a Call', style: TextStyle(color: Colors.white)),
+        content: const Text('Do you want a Voice Call or Video Call?', style: TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CallScreen(userName: widget.userName, isVideoCall: false),
+                ),
+              );
+            },
+            child: const Text('Voice Call', style: TextStyle(color: Color(0xFFBB86FC))),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CallScreen(userName: widget.userName, isVideoCall: true),
+                ),
+              );
+            },
+            child: const Text('Video Call', style: TextStyle(color: Color(0xFFBB86FC))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: 300,
+          color: const Color(0xFF16161A),
+          child: EmojiPicker(
+            textEditingController: _messageController,
+            config: const Config(),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleRecording() async {
+    // Add a mock Voice Note bubble
+    setState(() {
+      _messages.add({
+        'text': 'Voice Note 🎵',
+        'isMe': true,
+        'time': _currentTime(),
+      });
+    });
+    _scrollToBottom();
+    
+    // Simulate incoming reply
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _messages.add({
+            'text': 'Thanks for the voice note!',
+            'isMe': false,
+            'time': _currentTime(),
+          });
+        });
+        _scrollToBottom();
+      }
+    });
   }
 }
