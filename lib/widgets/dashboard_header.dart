@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class DashboardHeader extends StatelessWidget {
   final VoidCallback onProfileTap;
+  final String userName;
 
-  const DashboardHeader({super.key, required this.onProfileTap});
+  const DashboardHeader({super.key, required this.onProfileTap, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +17,7 @@ class DashboardHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Hey Sam! 👋",
+              "Hey $userName! 👋",
               style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
             ),
             Row(
@@ -73,8 +74,8 @@ class DashboardHeader extends StatelessWidget {
                     width: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6200EA), Color(0xFF1A237E)],
+                      gradient: LinearGradient(
+                        colors: [const Color(0xFFBB86FC), const Color(0xFFBB86FC).withAlpha(150)],
                       ),
                       border: Border.all(
                         color: theme.scaffoldBackgroundColor,
@@ -89,7 +90,7 @@ class DashboardHeader extends StatelessWidget {
                   ),
                   const CircleAvatar(
                     radius: 12,
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: Color(0xFFBB86FC),
                     child: Icon(Icons.add, size: 15, color: Colors.white),
                   ),
                 ],
