@@ -3,13 +3,27 @@ import 'main.dart';
 import 'database_helper.dart';
 
 // --- PAGE 2: LOGIN PAGE ---
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final TextEditingController usernameController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
     const Color purpleGlow = Color(0xFFBB86FC);
     const Color darkBackground = Color(0xFF060914);
 
@@ -83,9 +97,9 @@ class LoginPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 40),
                     
-                    _buildTextField('Username', Icons.person_outline, usernameController, false),
+                    _buildTextField('Username', Icons.person_outline, usernameController),
                     const SizedBox(height: 20),
-                    _buildTextField('Password', Icons.lock_outline, passwordController, true),
+                    _buildPasswordField(),
                     
                     const SizedBox(height: 40),
                     SizedBox(
@@ -155,17 +169,56 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String hint, IconData icon, TextEditingController controller, bool isPassword) {
+  Widget _buildTextField(String hint, IconData icon, TextEditingController controller) {
     const Color purpleGlow = Color(0xFFBB86FC);
     const Color cardBackground = Color(0xFF11162D);
     return TextField(
       controller: controller,
-      obscureText: isPassword,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.white.withAlpha(100)),
         prefixIcon: Icon(icon, color: purpleGlow.withAlpha(150)),
+        filled: true,
+        fillColor: cardBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.white.withAlpha(20)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: purpleGlow),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    const Color purpleGlow = Color(0xFFBB86FC);
+    const Color cardBackground = Color(0xFF11162D);
+    return TextField(
+      controller: passwordController,
+      obscureText: _obscurePassword,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: 'Password',
+        hintStyle: TextStyle(color: Colors.white.withAlpha(100)),
+        prefixIcon: Icon(Icons.lock_outline, color: purpleGlow.withAlpha(150)),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: purpleGlow.withAlpha(150),
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
         filled: true,
         fillColor: cardBackground,
         border: OutlineInputBorder(

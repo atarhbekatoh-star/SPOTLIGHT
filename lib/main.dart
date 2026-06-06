@@ -5,6 +5,7 @@ import 'skills_page.dart';
 import 'chat_page.dart';
 import 'profile_page.dart';
 import 'journal_page.dart';
+import 'reminder_page.dart';
 import 'widgets/dashboard_header.dart';
 import 'widgets/daily_mission_card.dart';
 import 'widgets/continue_learning_list.dart';
@@ -220,8 +221,9 @@ class DashboardView extends StatelessWidget {
                       );
                     },
                     onRemindersTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Reminders coming soon!")),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ReminderPage(userName: userName)),
                       );
                     },
                   ),
