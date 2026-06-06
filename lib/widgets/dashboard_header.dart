@@ -1,10 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../database_helper.dart';
+import '../providers/app_provider.dart';
+import '../pages/shop_page.dart';
 
-class DashboardHeader extends StatelessWidget {
+class DashboardHeader extends StatefulWidget {
   final VoidCallback onProfileTap;
   final String userName;
+  final VoidCallback? onNotificationTap;
 
-  const DashboardHeader({super.key, required this.onProfileTap, required this.userName});
+  const DashboardHeader({
+    super.key,
+    required this.onProfileTap,
+    required this.userName,
+    this.onNotificationTap,
+  });
+
+  @override
+  State<DashboardHeader> createState() => _DashboardHeaderState();
+}
+
+class _DashboardHeaderState extends State<DashboardHeader> {
+  int _streakCount = 0;
+  int _unreadNotifications = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    int streak = await DatabaseHelper.instance.getStreak(widget.userName);
+    List<Map<String, dynamic>> notifications =
+        await DatabaseHelper.instance.getNotifications(widget.userName);
+    int unread = notifications.where((n) => n['read'] == false).length;
+
+    if (mounted) {
+      setState(() {
+        _streakCount = streak;
+        _unreadNotifications = unread;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,11 +55,41 @@ class DashboardHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Hey $userName! 👋",
+              "Hey ${widget.userName}! 👋",
               style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
             ),
             Row(
               children: [
+                // Credits / Shop button
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopPage()));
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFFF8A).withAlpha(30),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.store, color: Color(0xFFEFFF8A), size: 16),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.stars, color: Color(0xFFEFFF8A), size: 14),
+                        const SizedBox(width: 2),
+                        Text(
+                          "${context.watch<AppProvider>().credits}",
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFFEFFF8A),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Streak badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -40,7 +108,7 @@ class DashboardHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        "12",
+                        "$_streakCount",
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: Colors.orange,
                           fontWeight: FontWeight.bold,
@@ -49,8 +117,50 @@ class DashboardHeader extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
+                // Daily Reward button
+                GestureDetector(
+                  onTap: () => _showDailyRewardModal(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withAlpha(30),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(Icons.card_giftcard, color: Colors.green, size: 18),
+                  ),
+                ),
                 const SizedBox(width: 15),
-                Icon(Icons.notifications_none, color: theme.iconTheme.color),
+                // Notification bell with badge
+                GestureDetector(
+                  onTap: widget.onNotificationTap ?? () => _showNotificationsSheet(context),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(Icons.notifications_none, color: theme.iconTheme.color),
+                      if (_unreadNotifications > 0)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ],
@@ -65,7 +175,7 @@ class DashboardHeader extends StatelessWidget {
               ),
             ),
             GestureDetector(
-              onTap: onProfileTap,
+              onTap: widget.onProfileTap,
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
@@ -101,4 +211,316 @@ class DashboardHeader extends StatelessWidget {
       ],
     );
   }
+
+  void _showNotificationsSheet(BuildContext context) async {
+    const Color purpleGlow = Color(0xFFBB86FC);
+    const Color cardBackground = Color(0xFF11162D);
+    
+    List<Map<String, dynamic>> notifications = 
+        await DatabaseHelper.instance.getNotifications(widget.userName);
+
+    if (!context.mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF060914),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                '🔔 Notifications',
+                style: TextStyle(
+                  color: purpleGlow,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 15),
+              if (notifications.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: [
+                        Icon(Icons.notifications_off_outlined, 
+                          color: purpleGlow.withAlpha(80), size: 50),
+                        const SizedBox(height: 10),
+                        Text('No notifications yet',
+                          style: TextStyle(color: Colors.white.withAlpha(100))),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: notifications.length,
+                    itemBuilder: (context, index) {
+                      final notif = notifications[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: cardBackground,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: notif['read'] == false
+                                ? purpleGlow.withAlpha(80)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: purpleGlow.withAlpha(30),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                notif['read'] == false
+                                    ? Icons.notifications_active
+                                    : Icons.notifications_none,
+                                color: purpleGlow,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    notif['title'] ?? '',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: notif['read'] == false
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    notif['body'] ?? '',
+                                    style: TextStyle(
+                                      color: Colors.white.withAlpha(120),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDailyRewardModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF060914),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return const _DailyRewardSheet();
+      },
+    );
+  }
 }
+
+class _DailyRewardSheet extends StatelessWidget {
+  const _DailyRewardSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final appProvider = context.watch<AppProvider>();
+    final canClaim = appProvider.canClaimDailyReward;
+    final rewardStreak = appProvider.rewardStreak;
+    
+    // Determine the current 7-day cycle.
+    int currentCycle = rewardStreak ~/ 7;
+    int cycleStartDay = currentCycle * 7;
+    int itemsToShow = 7;
+
+    // If we just claimed day 7, rewardStreak is a multiple of 7 and canClaim is false.
+    // In that case, we want to show the completed 7-day cycle.
+    if (rewardStreak > 0 && rewardStreak % 7 == 0 && !canClaim) {
+      cycleStartDay = (currentCycle - 1) * 7;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 25),
+            const Text(
+              'Daily Rewards',
+              style: TextStyle(
+                color: Colors.green,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              canClaim ? 'Claim your reward for today!' : 'You have claimed your reward today. Come back tomorrow!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withAlpha(150),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 25),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: itemsToShow,
+              itemBuilder: (context, index) {
+                int absoluteDay = cycleStartDay + index;
+                bool isClaimed = absoluteDay < rewardStreak;
+                bool isClaimable = absoluteDay == rewardStreak && canClaim;
+                bool isLocked = !isClaimed && !isClaimable;
+                
+                int rewardCredits = (index + 1) * 10;
+                if (index == 6) rewardCredits = 100;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isClaimed 
+                        ? Colors.green.withAlpha(20) 
+                        : (isClaimable ? Colors.orange.withAlpha(30) : const Color(0xFF11162D)),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: isClaimed 
+                          ? Colors.green.withAlpha(100) 
+                          : (isClaimable ? Colors.orange : Colors.white.withAlpha(20)),
+                      width: isClaimable ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Day ${index + 1}',
+                        style: TextStyle(
+                          color: isClaimable ? Colors.orange : Colors.white.withAlpha(150),
+                          fontSize: 12,
+                          fontWeight: isClaimable ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Icon(
+                        index == 6 ? Icons.stars : Icons.monetization_on,
+                        color: isClaimed ? Colors.green : (isClaimable ? Colors.orange : Colors.white.withAlpha(50)),
+                        size: 24,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '+$rewardCredits',
+                        style: TextStyle(
+                          color: isClaimed ? Colors.green : (isClaimable ? Colors.orange : Colors.white.withAlpha(100)),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (isLocked)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Icon(Icons.lock, color: Colors.white30, size: 12),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: canClaim ? () async {
+                  bool claimed = await appProvider.claimDailyReward();
+                  if (context.mounted && claimed) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Daily Reward Claimed! 🎁'),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                } : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  disabledBackgroundColor: Colors.green.withAlpha(50),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: Text(
+                  canClaim ? 'Claim Reward' : 'Already Claimed',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

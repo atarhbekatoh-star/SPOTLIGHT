@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'database_helper.dart';
+import 'pages/other_user_profile_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -10,6 +12,68 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
+
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _allUsers = [];
+  List<Map<String, dynamic>> _searchResults = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    final users = await DatabaseHelper.instance.getAllUsers();
+    setState(() {
+      _allUsers = users;
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+      });
+      return;
+    }
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _searchResults = _allUsers.where((user) {
+        final username = (user['username'] ?? '').toString().toLowerCase();
+        return username.contains(lowerQuery);
+      }).toList();
+    });
+  }
+
+  Widget _buildSearchResults() {
+    return ListView.builder(
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final user = _searchResults[index];
+        return ListTile(
+          leading: const CircleAvatar(
+            backgroundColor: Colors.blueAccent,
+            child: Icon(Icons.person, color: Colors.white),
+          ),
+          title: Text(
+            user['username'] ?? 'Unknown',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          subtitle: const Text("Tap to view profile", style: TextStyle(color: Colors.white54)),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OtherUserProfilePage(user: user),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   // --- FRIEND'S GAME MECHANICS STATE ---
   int xp = 30;
@@ -205,21 +269,46 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(
-          "SPOTLIGHT",
-          style: GoogleFonts.playfairDisplay(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: "Search users...",
+                  hintStyle: TextStyle(color: Colors.white54),
+                  border: InputBorder.none,
+                ),
+                onChanged: _onSearchChanged,
+              )
+            : Text(
+                "SPOTLIGHT",
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  _isSearching = false;
+                  _searchController.clear();
+                  _searchResults.clear();
+                } else {
+                  _isSearching = true;
+                  _loadUsers(); // Refresh users list when opening search
+                }
+              });
+            },
+            icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.white),
           ),
         ],
       ),
-      body: pages[_selectedIndex],
+      body: _isSearching && _searchController.text.isNotEmpty
+          ? _buildSearchResults()
+          : pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),

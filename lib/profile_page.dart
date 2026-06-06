@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/app_provider.dart';
 import 'mbti_quiz_page.dart';
+import 'pages/chat/qr_page.dart';
+import 'welcome_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ThemeMode currentThemeMode;
   final Function(ThemeMode) onThemeChanged;
   final String userName;
+  final String fullName;
 
   const ProfilePage({
     super.key,
     required this.currentThemeMode,
     required this.onThemeChanged,
     required this.userName,
+    required this.fullName,
   });
 
   @override
@@ -22,14 +28,16 @@ class _ProfilePageState extends State<ProfilePage> {
   // USER DATA
   // -----------------------------
 
-  final String currentRank = "✨ Main Character";
-
-  final int xp = 250;
-  final int maxXp = 500;
+  final String bio = "Flutter enthusiast. Building cool apps! 🚀";
 
   final int streakDays = 7;
   final int badges = 3;
   final int weeklyProgress = 68;
+
+  final int mutualFriends = 12;
+  final int mutualGroups = 3;
+
+  bool isFollowing = false;
 
   // -----------------------------
   // MBTI DATA (UPDATABLE)
@@ -73,10 +81,16 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final appProvider = context.watch<AppProvider>();
+    final int xp = appProvider.xp;
+    final int level = appProvider.level;
+    final int nextLevelXp = appProvider.nextLevelXp;
+    final double progressToNextLevel = appProvider.progressToNextLevel;
+    final String currentRank = "✨ ${appProvider.currentRank}";
 
     final isDarkMode =
-        widget.currentThemeMode == ThemeMode.dark ||
-        (widget.currentThemeMode == ThemeMode.system &&
+        appProvider.themeMode == ThemeMode.dark ||
+        (appProvider.themeMode == ThemeMode.system &&
             MediaQuery.of(context).platformBrightness ==
                 Brightness.dark);
 
@@ -94,6 +108,17 @@ class _ProfilePageState extends State<ProfilePage> {
             color: theme.textTheme.titleLarge?.color,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner, color: Color(0xFFBB86FC)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QRPage()),
+              );
+            },
+          ),
+        ],
       ),
 
       body: ListView(
@@ -168,7 +193,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 20),
 
                 Text(
-                  widget.userName,
+                  widget.fullName,
 
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 26,
@@ -179,6 +204,32 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 6),
 
                 Text(
+                  '@${widget.userName}',
+
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(180),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    bio,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Text(
                   currentRank,
 
                   style: const TextStyle(
@@ -186,6 +237,57 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // FOLLOW / MESSAGE BUTTONS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          isFollowing = !isFollowing;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isFollowing ? Colors.transparent : const Color(0xFFBB86FC),
+                        foregroundColor: isFollowing ? const Color(0xFFBB86FC) : Colors.white,
+                        side: const BorderSide(color: Color(0xFFBB86FC), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: Text(isFollowing ? "Following" : "Follow"),
+                    ),
+                    const SizedBox(width: 15),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Message logic
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF16161A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: const Text("Message"),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // MUTUALS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("$mutualFriends Mutual Friends", style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                    const SizedBox(width: 15),
+                    const Text("•", style: TextStyle(color: Colors.white54)),
+                    const SizedBox(width: 15),
+                    Text("$mutualGroups Mutual Groups", style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
@@ -260,10 +362,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   CrossAxisAlignment.start,
 
               children: [
-                const Text(
-                  "LEVEL PROGRESS",
+                Text(
+                  "LEVEL $level",
 
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white70,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.bold,
@@ -273,7 +375,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 15),
 
                 Text(
-                  "$xp / $maxXp XP",
+                  "$xp / $nextLevelXp XP",
 
                   style: const TextStyle(
                     color: Colors.white,
@@ -289,7 +391,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       BorderRadius.circular(20),
 
                   child: LinearProgressIndicator(
-                    value: xp / maxXp,
+                    value: progressToNextLevel,
                     minHeight: 10,
                     backgroundColor: Colors.white24,
 
@@ -591,7 +693,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               onChanged: (bool value) {
-                widget.onThemeChanged(
+                appProvider.setThemeMode(
                   value
                       ? ThemeMode.dark
                       : ThemeMode.light,
@@ -622,13 +724,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               onTap: () {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Settings coming soon!",
-                    ),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
                 );
               },
             ),
@@ -720,6 +818,73 @@ class _ProfilePageState extends State<ProfilePage> {
 
           child,
         ],
+      ),
+    );
+  }
+}
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text("Settings"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _buildSettingsTile(
+            context,
+            icon: Icons.person,
+            title: "Account Settings",
+            onTap: () {},
+          ),
+          _buildSettingsTile(
+            context,
+            icon: Icons.lock,
+            title: "Privacy",
+            onTap: () {},
+          ),
+          _buildSettingsTile(
+            context,
+            icon: Icons.notifications,
+            title: "Notifications",
+            onTap: () {},
+          ),
+          const SizedBox(height: 20),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const WelcomePage()),
+                (Route<dynamic> route) => false,
+              );
+            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            tileColor: theme.cardColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: ListTile(
+        leading: Icon(icon, color: const Color(0xFFBB86FC)),
+        title: Text(title),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        tileColor: Theme.of(context).cardColor,
+        onTap: onTap,
       ),
     );
   }

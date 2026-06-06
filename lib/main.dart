@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+import 'providers/chat_provider.dart';
+import 'providers/app_provider.dart';
 import 'welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
@@ -5,12 +8,24 @@ import 'skills_page.dart';
 import 'chat_page.dart';
 import 'profile_page.dart';
 import 'journal_page.dart';
+import 'reminder_page.dart';
 import 'widgets/dashboard_header.dart';
+import 'widgets/global_search_bar.dart';
 import 'widgets/daily_mission_card.dart';
 import 'widgets/continue_learning_list.dart';
 import 'widgets/quick_actions_grid.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => AppProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -20,16 +35,14 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final ThemeMode _themeMode =
-      ThemeMode.dark; // Default to dark as per existing design
-
   @override
   Widget build(BuildContext context) {
+    final appProvider = context.watch<AppProvider>();
     return MaterialApp(
       title: 'Spotlight',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
+      themeMode: appProvider.themeMode,
       home: const WelcomePage(),
       debugShowCheckedModeBanner: false,
     );
@@ -40,12 +53,14 @@ class MainScreen extends StatefulWidget {
   final ThemeMode currentThemeMode;
   final Function(ThemeMode) onThemeChanged;
   final String userName;
+  final String fullName;
 
   const MainScreen({
     super.key,
     required this.currentThemeMode,
     required this.onThemeChanged,
     required this.userName,
+    required this.fullName,
   });
 
   @override
@@ -71,6 +86,7 @@ class _MainScreenState extends State<MainScreen> {
         currentThemeMode: widget.currentThemeMode,
         onThemeChanged: widget.onThemeChanged,
         userName: widget.userName,
+        fullName: widget.fullName,
       ),
     ];
 
@@ -158,6 +174,8 @@ class DashboardView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DashboardHeader(onProfileTap: onNavigateToProfile, userName: userName),
+                  const SizedBox(height: 20),
+                  GlobalSearchBar(currentUsername: userName),
                   const SizedBox(height: 30),
 
                   Row(
@@ -187,14 +205,7 @@ class DashboardView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Text(
-                        "See All",
-                        style: TextStyle(
-                          color: purpleGlow,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+
                     ],
                   ),
                   const SizedBox(height: 15),
@@ -220,8 +231,9 @@ class DashboardView extends StatelessWidget {
                       );
                     },
                     onRemindersTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Reminders coming soon!")),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ReminderPage(userName: userName)),
                       );
                     },
                   ),

@@ -2,15 +2,30 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'database_helper.dart';
 
-final TextEditingController fullNameController = TextEditingController();
-final TextEditingController emailController = TextEditingController();
-final TextEditingController usernameController = TextEditingController();
-final TextEditingController passwordController = TextEditingController();
-
-
 // --- PAGE 3: REGISTER PAGE ---
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    emailController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +109,8 @@ class RegisterPage extends StatelessWidget {
                     _buildTextField('Username', Icons.person_outline, usernameController),
                     const SizedBox(height: 15),
                     _buildTextField('Password', Icons.lock_outline, passwordController, isPassword: true),
+                    const SizedBox(height: 15),
+                    _buildTextField('Confirm Password', Icons.lock_outline, confirmPasswordController, isPassword: true),
                     
                     const SizedBox(height: 40),
                     SizedBox(
@@ -101,53 +118,83 @@ class RegisterPage extends StatelessWidget {
                       height: 55,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (fullNameController.text.isNotEmpty && 
-                              emailController.text.isNotEmpty && 
-                              usernameController.text.isNotEmpty && 
-                              passwordController.text.isNotEmpty) {
-                            
-                            try {
-                              Map<String, dynamic> newUser = {
-                                'fullName': fullNameController.text,
-                                'email': emailController.text,
-                                'username': usernameController.text,
-                                'password': passwordController.text,
-                              };
+                          final String fullName = fullNameController.text;
+                          final String email = emailController.text;
+                          final String username = usernameController.text;
+                          final String password = passwordController.text;
+                          final String confirmPassword = confirmPasswordController.text;
 
-                              int result = await DatabaseHelper.instance.createUser(newUser);
-
-                              if (!context.mounted) return;
-
-                              if (result == -1) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Username already exists. Please choose another.'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              } else {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => MainScreen(
-                                    currentThemeMode: ThemeMode.dark, 
-                                    onThemeChanged: (mode) {},
-                                    userName: fullNameController.text.split(' ')[0],
-                                  )),
-                                );
-                              }
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: Please fully STOP and rerun the app. (Details: $e)'),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
-                            }
-                          } else {
+                          if (fullName.isEmpty ||
+                              email.isEmpty ||
+                              username.isEmpty ||
+                              password.isEmpty ||
+                              confirmPassword.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Please fill all the fields.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Validate email format
+                          if (!email.contains('@') || !email.contains('.')) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter a valid email address.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Validate passwords match
+                          if (password != confirmPassword) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Passwords do not match.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
+
+                          try {
+                            Map<String, dynamic> newUser = {
+                              'fullName': fullName,
+                              'email': email,
+                              'username': username,
+                              'password': password,
+                            };
+
+                            int result = await DatabaseHelper.instance.createUser(newUser);
+
+                            if (!context.mounted) return;
+
+                            if (result == -1) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Username already exists. Please choose another.'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            } else {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => MainScreen(
+                                  currentThemeMode: ThemeMode.dark, 
+                                  onThemeChanged: (mode) {},
+                                  userName: username,
+                                  fullName: fullName,
+                                )),
+                              );
+                            }
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: Please fully STOP and rerun the app. (Details: $e)'),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
