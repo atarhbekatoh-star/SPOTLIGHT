@@ -41,12 +41,14 @@ class MainScreen extends StatefulWidget {
   final ThemeMode currentThemeMode;
   final Function(ThemeMode) onThemeChanged;
   final String userName;
+  final String fullName;
 
   const MainScreen({
     super.key,
     required this.currentThemeMode,
     required this.onThemeChanged,
     required this.userName,
+    required this.fullName,
   });
 
   @override
@@ -72,6 +74,7 @@ class _MainScreenState extends State<MainScreen> {
         currentThemeMode: widget.currentThemeMode,
         onThemeChanged: widget.onThemeChanged,
         userName: widget.userName,
+        fullName: widget.fullName,
       ),
     ];
 

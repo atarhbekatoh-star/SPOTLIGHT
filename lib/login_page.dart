@@ -122,7 +122,8 @@ class _LoginPageState extends State<LoginPage> {
                                 MaterialPageRoute(builder: (context) => MainScreen(
                                   currentThemeMode: ThemeMode.dark, 
                                   onThemeChanged: (mode) {},
-                                  userName: fullName.split(' ')[0],
+                                  userName: user['username'],
+                                  fullName: fullName,
                                 )),
                               );
                             } else {

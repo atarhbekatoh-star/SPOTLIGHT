@@ -185,7 +185,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                 MaterialPageRoute(builder: (context) => MainScreen(
                                   currentThemeMode: ThemeMode.dark, 
                                   onThemeChanged: (mode) {},
-                                  userName: fullName.split(' ')[0],
+                                  userName: username,
+                                  fullName: fullName,
                                 )),
                               );
                             }

@@ -5,12 +5,14 @@ class ProfilePage extends StatefulWidget {
   final ThemeMode currentThemeMode;
   final Function(ThemeMode) onThemeChanged;
   final String userName;
+  final String fullName;
 
   const ProfilePage({
     super.key,
     required this.currentThemeMode,
     required this.onThemeChanged,
     required this.userName,
+    required this.fullName,
   });
 
   @override
@@ -168,11 +170,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 20),
 
                 Text(
-                  widget.userName,
+                  widget.fullName,
 
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  '@${widget.userName}',
+
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(180),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
 
