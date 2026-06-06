@@ -24,9 +24,13 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
 
   Future<void> _loadUsers() async {
     final users = await DatabaseHelper.instance.getAllUsers(widget.currentUsername);
+    if (!mounted) return;
     setState(() {
       _allUsers = users;
     });
+    if (_searchController.text.isNotEmpty) {
+      _onSearchChanged(_searchController.text);
+    }
   }
 
   void _onSearchChanged(String query) {
@@ -54,7 +58,10 @@ class _GlobalSearchBarState extends State<GlobalSearchBar> {
         TextField(
           controller: _searchController,
           onChanged: _onSearchChanged,
-          onTap: () => setState(() => _isSearching = true),
+          onTap: () {
+            _loadUsers();
+            setState(() => _isSearching = true);
+          },
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Search friends...',

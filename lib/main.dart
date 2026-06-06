@@ -15,7 +15,18 @@ import 'widgets/daily_mission_card.dart';
 import 'widgets/continue_learning_list.dart';
 import 'widgets/quick_actions_grid.dart';
 
-void main() {
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'database_helper.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://bakbqemhmwtozvaywsfu.supabase.co',
+    anonKey: 'sb_publishable_NZjh87q-3azoQJP3q0CPnA_t0YrNhP8',
+  );
+
   runApp(
     MultiProvider(
       providers: [
