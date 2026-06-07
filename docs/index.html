@@ -7,15 +7,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     :root {
-      --black: #080808;
-      --deep: #0e0e10;
-      --surface: #141416;
-      --border: rgba(255,255,255,0.07);
-      --gold: #f5c842;
-      --amber: #ff8c00;
-      --white: #f0ece4;
-      --muted: rgba(240,236,228,0.45);
-      --glow: rgba(245,200,66,0.18);
+      --black: #0D0D0F;
+      --deep: #16161A;
+      --surface: #2E2E38;
+      --border: rgba(187, 134, 252, 0.15);
+      --gold: #6B52FF;
+      --amber: #BB86FC;
+      --white: #ffffff;
+      --muted: rgba(255,255,255,0.65);
+      --glow: rgba(187, 134, 252, 0.25);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,7 +46,7 @@
     .cursor-ring {
       position: fixed;
       width: 40px; height: 40px;
-      border: 1px solid rgba(245,200,66,0.5);
+      border: 1px solid rgba(187, 134, 252,0.5);
       border-radius: 50%;
       pointer-events: none;
       z-index: 9998;
@@ -98,7 +98,7 @@
       text-decoration: none;
       transition: background 0.3s, transform 0.2s;
     }
-    .nav-cta:hover { background: #ffd84d; transform: translateY(-1px); }
+    .nav-cta:hover { background: #8875FF; transform: translateY(-1px); }
 
     /* HERO */
     .hero {
@@ -122,7 +122,7 @@
       transform: translateX(-50%);
       width: 600px;
       height: 110%;
-      background: conic-gradient(from 180deg at 50% 0%, transparent 70deg, rgba(245,200,66,0.08) 90deg, rgba(245,200,66,0.15) 100deg, rgba(245,200,66,0.08) 110deg, transparent 140deg);
+      background: conic-gradient(from 180deg at 50% 0%, transparent 70deg, rgba(187, 134, 252,0.08) 90deg, rgba(187, 134, 252,0.15) 100deg, rgba(187, 134, 252,0.08) 110deg, transparent 140deg);
       pointer-events: none;
     }
     .hero::after {
@@ -201,11 +201,11 @@
       text-decoration: none;
       border-radius: 2px;
       transition: all 0.3s;
-      box-shadow: 0 0 40px rgba(245,200,66,0.3);
+      box-shadow: 0 0 40px rgba(187, 134, 252,0.3);
     }
     .btn-primary:hover {
-      background: #ffd84d;
-      box-shadow: 0 0 60px rgba(245,200,66,0.5);
+      background: #8875FF;
+      box-shadow: 0 0 60px rgba(187, 134, 252,0.5);
       transform: translateY(-2px);
     }
     .btn-ghost {
@@ -323,7 +323,7 @@
     .step-num {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 3.5rem;
-      color: rgba(245,200,66,0.15);
+      color: rgba(187, 134, 252,0.15);
       line-height: 1;
       min-width: 60px;
       transition: color 0.3s;
@@ -373,7 +373,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 30%, rgba(245,200,66,0.06), transparent 70%);
+      background: radial-gradient(ellipse at 50% 30%, rgba(187, 134, 252,0.06), transparent 70%);
     }
     .mock-label {
       font-size: 0.65rem;
@@ -384,8 +384,8 @@
       margin-top: 16px;
     }
     .mock-mission {
-      background: linear-gradient(135deg, rgba(245,200,66,0.12), rgba(255,140,0,0.08));
-      border: 1px solid rgba(245,200,66,0.2);
+      background: linear-gradient(135deg, rgba(187, 134, 252,0.12), rgba(107, 82, 255,0.08));
+      border: 1px solid rgba(187, 134, 252,0.2);
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 12px;
@@ -499,7 +499,7 @@
       transition: border-color 0.3s, transform 0.3s;
     }
     .mission-card:hover {
-      border-color: rgba(245,200,66,0.4);
+      border-color: rgba(187, 134, 252,0.4);
       transform: translateY(-4px);
     }
     .mission-difficulty {
@@ -512,7 +512,7 @@
       display: inline-block;
     }
     .diff-easy { background: rgba(100,220,100,0.1); color: #64dc64; }
-    .diff-medium { background: rgba(245,200,66,0.1); color: var(--gold); }
+    .diff-medium { background: rgba(187, 134, 252,0.1); color: var(--gold); }
     .diff-hard { background: rgba(255,80,80,0.1); color: #ff5050; }
     .mission-card h4 {
       font-family: 'Bebas Neue', sans-serif;
@@ -559,7 +559,7 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .team-card:hover { border-color: rgba(245,200,66,0.3); transform: translateY(-6px); }
+    .team-card:hover { border-color: rgba(187, 134, 252,0.3); transform: translateY(-6px); }
     .team-card:hover::after { opacity: 1; }
 
     .team-photo {
@@ -593,7 +593,7 @@
     .photo-upload-hint {
       position: absolute;
       inset: 0;
-      background: rgba(245,200,66,0.15);
+      background: rgba(187, 134, 252,0.15);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -632,7 +632,7 @@
     .team-name[contenteditable="true"]:focus,
     .team-role[contenteditable="true"]:focus,
     .team-bio[contenteditable="true"]:focus {
-      outline: 1px dashed rgba(245,200,66,0.4);
+      outline: 1px dashed rgba(187, 134, 252,0.4);
       outline-offset: 4px;
       border-radius: 2px;
     }
@@ -659,7 +659,7 @@
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(245,200,66,0.07) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(187, 134, 252,0.07) 0%, transparent 70%);
       pointer-events: none;
     }
     .cta-title {
@@ -765,7 +765,7 @@
     <li><a href="#missions">Missions</a></li>
     <li><a href="#team">Team</a></li>
   </ul>
-  <a href="#cta" class="nav-cta">Get Early Access</a>
+  <a href="app-release.apk" class="nav-cta" download>Download App (APK)</a>
 </nav>
 
 <!-- HERO -->
@@ -774,7 +774,7 @@
   <h1 class="hero-title">Own<br/><span>The Room</span></h1>
   <p class="hero-sub">Spotlight trains your confidence and public speaking through daily missions, real challenges, and relentless progress.</p>
   <div class="hero-buttons">
-    <a href="#cta" class="btn-primary">Start Your Journey</a>
+    <a href="app-release.apk" class="btn-primary" download>Download App (APK)</a>
     <a href="#how" class="btn-ghost">See How It Works</a>
   </div>
   <div class="hero-scroll">
@@ -1009,7 +1009,7 @@
   <h2 class="cta-title reveal">Step Into<br/><span>The Light.</span></h2>
   <p class="cta-sub reveal">Your most confident self is one mission away.</p>
   <div class="reveal">
-    <a href="#" class="btn-primary" style="font-size:0.95rem; padding: 20px 60px;">Get Early Access</a>
+    <a href="app-release.apk" class="btn-primary" style="font-size:0.95rem; padding: 20px 60px;" download>Download App (APK)</a>
   </div>
 </section>
 
