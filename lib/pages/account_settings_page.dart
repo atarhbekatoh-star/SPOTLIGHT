@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database_helper.dart';
 import '../welcome_page.dart';
 import '../providers/app_provider.dart';
@@ -15,6 +17,7 @@ class AccountSettingsPage extends StatefulWidget {
 class _AccountSettingsPageState extends State<AccountSettingsPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   @override
@@ -27,15 +30,53 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
+    _oldPasswordController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _saveChanges() async {
-    // In a real app, you would save these changes to the database.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully.')),
-    );
+    if (_passwordController.text.isNotEmpty) {
+      if (_oldPasswordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your current password to set a new one.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+      
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('current_user');
+      if (userJson != null) {
+        final username = jsonDecode(userJson)['username'];
+        final success = await DatabaseHelper.instance.updateUserPassword(
+          username, 
+          _oldPasswordController.text, 
+          _passwordController.text
+        );
+        
+        if (!success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Incorrect current password.'), backgroundColor: Colors.redAccent),
+            );
+          }
+          return;
+        } else {
+          _oldPasswordController.clear();
+          _passwordController.clear();
+        }
+      }
+    }
+    
+    // In a real app, you would save other changes to the database here.
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully.')),
+      );
+    }
   }
 
   Future<void> _deleteAccount() async {
@@ -115,7 +156,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             const SizedBox(height: 20),
             _buildTextField('Email', _emailController, Icons.email),
             const SizedBox(height: 20),
-            _buildTextField('Password', _passwordController, Icons.lock, obscureText: true),
+            _buildTextField('Current Password', _oldPasswordController, Icons.lock_outline, obscureText: true),
+            const SizedBox(height: 20),
+            _buildTextField('New Password', _passwordController, Icons.lock, obscureText: true),
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,

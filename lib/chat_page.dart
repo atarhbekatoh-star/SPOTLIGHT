@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
@@ -43,10 +44,10 @@ class ChatMessage {
   final String? duration; // For voice notes
   final String? filePath; // For picked local image assets/stickers
   
-  // Voting Poll Data Metrics
   final String? pollQuestion;
   final List<String>? pollOptions;
   final List<int>? pollVotes;
+  final bool isRead;
 
   ChatMessage({
     required this.text,
@@ -58,6 +59,7 @@ class ChatMessage {
     this.pollQuestion,
     this.pollOptions,
     this.pollVotes,
+    this.isRead = false,
   });
 }
 
@@ -183,7 +185,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         backgroundColor: const Color(0xFF0D0D0F),
         appBar: AppBar(
@@ -210,16 +212,14 @@ class _ChatPageState extends State<ChatPage> {
             unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(text: 'Messages'),
-              Tab(text: 'Calls'),
               Tab(text: 'Channels'),
               Tab(text: 'Groups'),
             ],
           ),
         ),
-        body: TabBarView(
+        body: const TabBarView(
           children: [
             ConnectionsDashboardPage(),
-            CallsPage(),
             ChannelsPage(),
             GroupsPage(),
           ],
@@ -300,7 +300,12 @@ class _ConnectionsDashboardPageState extends State<ConnectionsDashboardPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip("All", count: 35),
+                  ValueListenableBuilder<List<CoStar>>(
+                    valueListenable: AppStateManager.activeChats,
+                    builder: (context, chats, _) {
+                      return _buildFilterChip("All", count: chats.length);
+                    },
+                  ),
                   const SizedBox(width: 8),
                   _buildFilterChip("Live Chat", count: 2),
                   const SizedBox(width: 8),
@@ -390,13 +395,28 @@ class _ConnectionsDashboardPageState extends State<ConnectionsDashboardPage> {
                       child: Row(
                         children: [
                           GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CoStarProfilePage(starName: chat.name),
-                                ),
-                              );
+                            onTap: () async {
+                              final prefs = await SharedPreferences.getInstance();
+                              final userJson = prefs.getString('current_user');
+                              String? currentUsername;
+                              if (userJson != null) {
+                                currentUsername = jsonDecode(userJson)['username'];
+                              }
+                              
+                              final users = await DatabaseHelper.instance.getAllUsers();
+                              final targetUser = users.firstWhere((u) => u['username'] == chat.name, orElse: () => {});
+                              
+                              if (context.mounted && targetUser.isNotEmpty && currentUsername != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OtherUserProfilePage(
+                                      user: targetUser,
+                                      currentUsername: currentUsername!,
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                             child: Stack(
                               children: [
@@ -540,11 +560,19 @@ class _ActivechatPageState extends State<ActivechatPage> {
   final FocusNode _focusNode = FocusNode();
 
   bool _isOnline = false;
+  String? _currentUser;
+  final ScrollController _scrollController = ScrollController();
+
+  List<Map<String, dynamic>> _messages = [];
+  bool _isLoadingMessages = true;
+  StreamSubscription<List<Map<String, dynamic>>>? _messagesSubscription;
+  int _previousMessageCount = 0;
 
   @override
   void initState() {
     super.initState();
     _checkOnlineStatus();
+    _initCurrentUser();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         setState(() {
@@ -552,6 +580,55 @@ class _ActivechatPageState extends State<ActivechatPage> {
         });
       }
     });
+  }
+
+  Future<void> _initCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('current_user');
+      if (userJson != null) {
+        final map = jsonDecode(userJson);
+        _currentUser = map['username'];
+        
+        _messagesSubscription = DatabaseHelper.instance.getMessagesStream(_currentUser!, widget.starName).listen((data) {
+          if (mounted) {
+            setState(() {
+              _messages = data;
+              _isLoadingMessages = false;
+            });
+            if (_messages.length > _previousMessageCount) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    _scrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            }
+            _previousMessageCount = _messages.length;
+          }
+        }, onError: (err) {
+          if (mounted) {
+            setState(() {
+              _isLoadingMessages = false;
+            });
+          }
+        });
+
+        // Mark received messages as read
+        DatabaseHelper.instance.markMessagesAsRead(widget.starName, _currentUser!);
+      } else {
+        setState(() {
+          _isLoadingMessages = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingMessages = false;
+      });
+    }
   }
 
   Future<void> _checkOnlineStatus() async {
@@ -575,9 +652,74 @@ class _ActivechatPageState extends State<ActivechatPage> {
     }
   }
 
+  void _sendMessage(String text, String type, {String? extra}) {
+    if (_currentUser != null) {
+      final newMsg = {
+        'sender': _currentUser!,
+        'receiver': widget.starName,
+        'text': text,
+        'type': type,
+        'extra': extra,
+        'is_read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      
+      setState(() {
+        _messages.add(newMsg);
+      });
+      _previousMessageCount = _messages.length;
+      
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+      
+      DatabaseHelper.instance.sendMessage(_currentUser!, widget.starName, text, type, extra: extra);
+    }
+  }
+
+  void _showDeleteDialog(Map<String, dynamic> data, int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF16161A),
+        title: const Text('Delete Message?', style: TextStyle(color: Colors.white)),
+        content: const Text('Are you sure you want to delete this message for everyone? This action cannot be undone.', style: TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              if (_currentUser != null) {
+                await DatabaseHelper.instance.deleteMessage(_currentUser!, widget.starName, data['created_at']);
+                if (mounted) {
+                  setState(() {
+                    _messages.removeAt(index);
+                  });
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _messagesSubscription?.cancel();
     _messageController.dispose();
+    _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -600,7 +742,7 @@ class _ActivechatPageState extends State<ActivechatPage> {
                   Navigator.pop(context);
                   final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
                   if (image != null) {
-                    AppStateManager.addMessage('', true, type: MessageType.image, filePath: image.path);
+                    _sendMessage('', 'image', extra: image.path);
                   }
                 },
               ),
@@ -611,7 +753,7 @@ class _ActivechatPageState extends State<ActivechatPage> {
                   Navigator.pop(context);
                   final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
                   if (photo != null) {
-                    AppStateManager.addMessage('', true, type: MessageType.image, filePath: photo.path);
+                    _sendMessage('', 'image', extra: photo.path);
                   }
                 },
               ),
@@ -749,12 +891,25 @@ class _ActivechatPageState extends State<ActivechatPage> {
             color: const Color(0xFF16161A),
             onSelected: (value) async {
               if (value == 'profile') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CoStarProfilePage(starName: widget.starName),
-                  ),
-                );
+                final prefs = await SharedPreferences.getInstance();
+                final userJson = prefs.getString('current_user');
+                String? currentUsername;
+                if (userJson != null) currentUsername = jsonDecode(userJson)['username'];
+                
+                final users = await DatabaseHelper.instance.getAllUsers();
+                final targetUser = users.firstWhere((u) => u['username'] == widget.starName, orElse: () => {});
+                
+                if (context.mounted && targetUser.isNotEmpty && currentUsername != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OtherUserProfilePage(
+                        user: targetUser,
+                        currentUsername: currentUsername!,
+                      ),
+                    ),
+                  );
+                }
               } else if (value == 'mute') {
                 final prefs = await SharedPreferences.getInstance();
                 final currentUserJson = prefs.getString('current_user');
@@ -770,7 +925,9 @@ class _ActivechatPageState extends State<ActivechatPage> {
                   
                   await prefs.setString('current_user', jsonEncode(userMap));
                 }
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Muted notifications for ${widget.starName}')));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Muted notifications for ${widget.starName}')));
+                }
               } else if (value == 'block') {
                 final prefs = await SharedPreferences.getInstance();
                 final currentUserJson = prefs.getString('current_user');
@@ -786,7 +943,9 @@ class _ActivechatPageState extends State<ActivechatPage> {
                   
                   await prefs.setString('current_user', jsonEncode(userMap));
                 }
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Blocked ${widget.starName}')));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Blocked ${widget.starName}')));
+                }
               }
             },
             itemBuilder: (BuildContext context) => [
@@ -800,57 +959,89 @@ class _ActivechatPageState extends State<ActivechatPage> {
       body: Column(
         children: [
           Expanded(
-            child: ValueListenableBuilder<List<ChatMessage>>(
-              valueListenable: AppStateManager.messageHistory,
-              builder: (context, messages, child) {
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index];
+            child: _isLoadingMessages
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFBB86FC)))
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final data = _messages[index];
+                      final isMe = data['sender'] == _currentUser;
+                      final msgTypeStr = data['type'] ?? 'text';
+                      MessageType type = MessageType.text;
+                      if (msgTypeStr == 'image') type = MessageType.image;
+                      if (msgTypeStr == 'voice') type = MessageType.voice;
+                      if (msgTypeStr == 'sticker') type = MessageType.sticker;
+                      if (msgTypeStr == 'poll') type = MessageType.poll;
 
-                    if (msg.type == MessageType.voice) {
-                      return _buildVoiceMessage(msg);
-                    } else if (msg.type == MessageType.sticker) {
-                      return _buildStickerMessage(msg);
-                    } else if (msg.type == MessageType.image) {
-                      return _buildImageMessage(msg);
-                    } else if (msg.type == MessageType.poll) {
-                      return _buildPollMessage(msg, index);
-                    }
+                      final msg = ChatMessage(
+                        text: data['text'] ?? '',
+                        isMe: isMe,
+                        timestamp: DateTime.tryParse(data['created_at'] ?? '') ?? DateTime.now(),
+                        type: type,
+                        filePath: (type == MessageType.image || type == MessageType.sticker) ? data['extra'] : null,
+                        duration: type == MessageType.voice ? data['extra'] : null,
+                        pollQuestion: type == MessageType.poll ? jsonDecode(data['extra'] ?? '{}')['question'] : null,
+                        pollOptions: type == MessageType.poll ? List<String>.from(jsonDecode(data['extra'] ?? '{}')['options'] ?? []) : null,
+                        isRead: data['is_read'] == true || data['is_read'] == 1,
+                      );
 
-                    return Align(
-                      alignment: msg.isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: msg.isMe ? const Color(0xFFBB86FC) : const Color(0xFF16161A),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: msg.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              msg.text,
-                              style: TextStyle(color: msg.isMe ? Colors.black : Colors.white, fontSize: 14),
+                      Widget messageWidget;
+                      if (msg.type == MessageType.voice) {
+                        messageWidget = _buildVoiceMessage(msg);
+                      } else if (msg.type == MessageType.sticker) {
+                        messageWidget = _buildStickerMessage(msg);
+                      } else if (msg.type == MessageType.image) {
+                        messageWidget = _buildImageMessage(msg);
+                      } else if (msg.type == MessageType.poll) {
+                        messageWidget = _buildPollMessage(msg, index);
+                      } else {
+                        messageWidget = Align(
+                          alignment: msg.isMe ? Alignment.centerRight : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: msg.isMe ? const Color(0xFFBB86FC) : const Color(0xFF16161A),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            if (msg.isMe) ...[
-                              const SizedBox(height: 2),
-                              Icon(
-                                _isOnline ? Icons.done_all : Icons.check,
-                                color: Colors.black54,
-                                size: 14,
-                              ),
-                            ]
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                            child: Column(
+                              crossAxisAlignment: msg.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  msg.text,
+                                  style: TextStyle(color: msg.isMe ? Colors.black : Colors.white, fontSize: 14),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _formatTime(msg.timestamp),
+                                      style: TextStyle(
+                                        color: msg.isMe ? Colors.black54 : Colors.grey,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    if (msg.isMe) ...[
+                                      const SizedBox(width: 4),
+                                      _buildTicks(msg),
+                                    ]
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return GestureDetector(
+                        onLongPress: msg.isMe ? () => _showDeleteDialog(data, index) : null,
+                        child: messageWidget,
+                      );
+                    },
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -901,11 +1092,11 @@ class _ActivechatPageState extends State<ActivechatPage> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () {
-                    if (_messageController.text.trim().isNotEmpty) {
-                      AppStateManager.addMessage(_messageController.text.trim(), true);
+                    if (_messageController.text.isNotEmpty) {
+                      _sendMessage(_messageController.text.trim(), 'text');
                       _messageController.clear();
                     } else {
-                      AppStateManager.addMessage('', true, type: MessageType.voice, duration: '2:40');
+                      _sendMessage('', 'voice', extra: '2:40');
                     }
                   },
                   child: Container(
@@ -932,6 +1123,24 @@ class _ActivechatPageState extends State<ActivechatPage> {
         ],
       ),
     );
+  }
+
+  String _formatTime(DateTime time) {
+    int hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
+    String minute = time.minute.toString().padLeft(2, '0');
+    String ampm = time.hour >= 12 ? 'PM' : 'AM';
+    return "$hour:$minute $ampm";
+  }
+
+  Widget _buildTicks(ChatMessage msg) {
+    if (!msg.isMe) return const SizedBox.shrink();
+    if (msg.isRead) {
+      return const Icon(Icons.done_all, color: Colors.blue, size: 14);
+    } else if (_isOnline) {
+      return const Icon(Icons.done_all, color: Colors.black54, size: 14);
+    } else {
+      return const Icon(Icons.check, color: Colors.black54, size: 14);
+    }
   }
 
   Widget _buildVoiceMessage(ChatMessage msg) {
@@ -969,9 +1178,29 @@ class _ActivechatPageState extends State<ActivechatPage> {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              msg.duration ?? "0:00",
-              style: TextStyle(color: msg.isMe ? Colors.black87 : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  msg.duration ?? "0:00",
+                  style: TextStyle(color: msg.isMe ? Colors.black87 : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatTime(msg.timestamp),
+                      style: TextStyle(color: msg.isMe ? Colors.black54 : Colors.grey, fontSize: 11),
+                    ),
+                    if (msg.isMe) ...[
+                      const SizedBox(width: 4),
+                      _buildTicks(msg),
+                    ]
+                  ],
+                ),
+              ],
             )
           ],
         ),
@@ -1101,8 +1330,56 @@ class _ActivechatPageState extends State<ActivechatPage> {
 // =======================================================
 // REQUESTS BOTTOM SHEET VIEW
 // =======================================================
-class ConnectionRequestPage extends StatelessWidget {
+class ConnectionRequestPage extends StatefulWidget {
   const ConnectionRequestPage({super.key});
+
+  @override
+  State<ConnectionRequestPage> createState() => _ConnectionRequestPageState();
+}
+
+class _ConnectionRequestPageState extends State<ConnectionRequestPage> {
+  List<Map<String, dynamic>> _requests = [];
+  bool _isLoading = true;
+  String? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRequests();
+  }
+
+  Future<void> _loadRequests() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('current_user');
+    if (userJson != null) {
+      _currentUser = jsonDecode(userJson)['username'];
+      if (_currentUser != null) {
+        final reqs = await DatabaseHelper.instance.getPendingFriendRequests(_currentUser!);
+        if (mounted) {
+          setState(() {
+            _requests = reqs;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _acceptRequest(String sender) async {
+    if (_currentUser != null) {
+      await DatabaseHelper.instance.acceptFriendRequest(sender, _currentUser!);
+      _loadRequests();
+    }
+  }
+
+  Future<void> _declineRequest(String sender) async {
+    if (_currentUser != null) {
+      await DatabaseHelper.instance.declineFriendRequest(sender, _currentUser!);
+      _loadRequests();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1130,41 +1407,49 @@ class ConnectionRequestPage extends StatelessWidget {
             'Review incoming connection requests here.',
             style: TextStyle(color: Colors.grey, fontSize: 14),
           ),
-          const SizedBox(height: 32),
-          Center(
-            child: Text(
-              'No new requests right now!',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+          const SizedBox(height: 20),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator(color: Color(0xFFBB86FC)))
+          else if (_requests.isEmpty)
+            Center(
+              child: Text(
+                'No new requests right now!',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _requests.length,
+                itemBuilder: (context, index) {
+                  final sender = _requests[index]['sender'];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFFBB86FC),
+                      child: Text(sender[0].toUpperCase(), style: const TextStyle(color: Colors.black)),
+                    ),
+                    title: Text(sender, style: const TextStyle(color: Colors.white)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.check_circle, color: Color(0xFFEFFF8A)),
+                          onPressed: () => _acceptRequest(sender),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.redAccent),
+                          onPressed: () => _declineRequest(sender),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
-}
-
-// =======================================================
-// DEDICATED PROFILE PAGE
-// =======================================================
-class CoStarProfilePage extends StatelessWidget {
-  final String starName;
-  const CoStarProfilePage({super.key, required this.starName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0F),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0D0D0F),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white), 
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Center(
-        child: Text("Profile of $starName", style: const TextStyle(color: Colors.white, fontSize: 20)),
-      ),
-    );
-  }
-}
+}

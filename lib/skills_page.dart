@@ -272,9 +272,9 @@ class _SkillsPageState extends State<SkillsPage> {
     String lockReason = "";
     
     if (index == 4) {
-      if (!appProvider.isPersuasionUnlocked) {
-        isLocked = true;
-        lockReason = "Complete previous missions to unlock Persuasion!";
+      isLocked = isPracticeLocked;
+      if (isPracticeLocked) {
+        lockReason = "Practice is locked for 24 hours. Come back tomorrow!";
       }
     } else {
       isLocked = isPracticeLocked || index != currentStep;

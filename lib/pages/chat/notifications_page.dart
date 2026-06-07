@@ -37,6 +37,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         
         final reqs = await db.getPendingFriendRequests(_currentUsername!);
         final notifs = await db.getNotifications(_currentUsername!);
+        await db.markNotificationsAsRead(_currentUsername!);
         
         final allUsers = await db.getAllUsers(_currentUsername!);
         final List<Map<String, dynamic>> validSuggestions = [];
