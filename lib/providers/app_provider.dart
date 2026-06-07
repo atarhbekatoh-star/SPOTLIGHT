@@ -31,7 +31,7 @@ class AppProvider extends ChangeNotifier {
     _lastPracticeDate = prefs.getString('last_practice_date');
     _rewardStreak = prefs.getInt('rewardStreak') ?? 0;
     _lastClaimDate = prefs.getString('lastClaimDate');
-    isPersuasionUnlocked = prefs.getBool('persuasion_unlocked') ?? false;
+    isPersuasionUnlocked = prefs.getBool('persuasion_unlocked') ?? true;
 
     final savedTheme = prefs.getString('themeMode');
     if (savedTheme == 'light') {

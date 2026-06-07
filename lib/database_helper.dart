@@ -131,6 +131,23 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<bool> updateUserPassword(String username, String oldPassword, String newPassword) async {
+    final existing = await supabase
+        .from('users')
+        .select('password')
+        .eq('username', username)
+        .single();
+    
+    if (existing['password'] == oldPassword) {
+      await supabase
+          .from('users')
+          .update({'password': newPassword})
+          .eq('username', username);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> logoutUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('current_user');
@@ -302,6 +319,14 @@ class DatabaseHelper {
     }
   }
 
+  Future<void> markNotificationsAsRead(String username) async {
+    await supabase
+        .from('notifications')
+        .update({'read': 1})
+        .eq('username', username)
+        .eq('read', 0);
+  }
+
   // ========================
   // JOURNALS
   // ========================
@@ -444,5 +469,92 @@ class DatabaseHelper {
         .select('following')
         .eq('follower', username);
     return result.map((row) => row['following'] as String).toList();
+  }
+
+  // ==========================================
+  // MESSAGING (Realtime)
+  // ==========================================
+
+  Future<void> sendMessage(String sender, String receiver, String text, String type, {String? extra}) async {
+    try {
+      await supabase.from('messages').insert({
+        'sender': sender,
+        'receiver': receiver,
+        'text': text,
+        'type': type,
+        'extra': extra,
+        'is_read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      // Fallback if is_read column doesn't exist yet
+      await supabase.from('messages').insert({
+        'sender': sender,
+        'receiver': receiver,
+        'text': text,
+        'type': type,
+        'extra': extra,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+  }
+
+  Future<void> deleteMessage(String sender, String receiver, String createdAt) async {
+    await supabase
+        .from('messages')
+        .delete()
+        .eq('sender', sender)
+        .eq('receiver', receiver)
+        .eq('created_at', createdAt);
+  }
+
+  Future<void> markMessagesAsRead(String sender, String receiver) async {
+    try {
+      await supabase
+          .from('messages')
+          .update({'is_read': true})
+          .eq('sender', sender)
+          .eq('receiver', receiver)
+          .eq('is_read', false);
+    } catch (e) {
+      // Ignore if column doesn't exist
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMessages(String user1, String user2) async {
+    try {
+      final result = await supabase
+          .from('messages')
+          .select()
+          .order('created_at', ascending: true);
+          
+      List<Map<String, dynamic>> msgs = [];
+      for (var row in result) {
+        msgs.add(Map<String, dynamic>.from(row));
+      }
+      
+      return msgs.where((msg) {
+        final isA = msg['sender'] == user1 && msg['receiver'] == user2;
+        final isB = msg['sender'] == user2 && msg['receiver'] == user1;
+        return isA || isB;
+      }).toList();
+    } catch (e) {
+      print("Error fetching messages: $e");
+      return [];
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> getMessagesStream(String user1, String user2) {
+    return supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: true)
+        .map((events) {
+          return events.where((msg) {
+            final isA = msg['sender'] == user1 && msg['receiver'] == user2;
+            final isB = msg['sender'] == user2 && msg['receiver'] == user1;
+            return isA || isB;
+          }).toList();
+        });
   }
 }

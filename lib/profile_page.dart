@@ -1,5 +1,6 @@
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
@@ -45,7 +46,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool isFollowing = false;
 
-  File? _selectedImage;
+  Uint8List? _selectedImageBytes;
 
   @override
   void initState() {
@@ -101,15 +102,15 @@ class _ProfilePageState extends State<ProfilePage> {
       aiInsight = result["insight"];
     });
   }
-Future<void> _pickImage() async {
+  Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
+      final bytes = await image.readAsBytes();
       setState(() {
-        _selectedImage = File(image.path);
+        _selectedImageBytes = bytes;
       });
-      print("User picked image: ${image.path}");
     }
   }
   @override
@@ -195,16 +196,13 @@ Future<void> _pickImage() async {
                           ),
                         ],
                       ),
-                      child: _selectedImage == null
-                          ? const CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Colors.transparent,
-                              child: Icon(Icons.person, size: 55, color: Colors.white),
-                            )
-                          : CircleAvatar(
-                              radius: 50,
-                              backgroundImage: FileImage(_selectedImage!),
-                            ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: _selectedImageBytes != null
+                            ? MemoryImage(_selectedImageBytes!)
+                            : const AssetImage('assets/images/user1.png') as ImageProvider,
+                      ),
                     ),
 
                     GestureDetector(
