@@ -9,7 +9,7 @@
 import 'package:app_links_web/app_links_web.dart';
 import 'package:audioplayers_web/audioplayers_web.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter_web.dart';
-import 'package:file_picker/_internal/file_picker_web.dart';
+import 'package:file_picker/src/platform/web/file_picker_web.dart';
 import 'package:image_picker_for_web/image_picker_for_web.dart';
 import 'package:record_web/record_web.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';

@@ -13,7 +13,7 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
   File? _image;
 
   Future<void> _pickImage() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.image,
     );
 

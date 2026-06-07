@@ -4,7 +4,6 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import '../../widgets/chat/chat_bubble.dart';
-import 'call_screen.dart';
 
 class ActiveChatPage extends StatefulWidget {
   final String userName;
@@ -112,12 +111,7 @@ class _ActiveChatPageState extends State<ActiveChatPage> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.call, color: Color(0xFFBB86FC)),
-            onPressed: _showCallPrompt,
-          ),
-        ],
+        actions: [],
       ),
       body: Column(
         children: [
@@ -193,43 +187,6 @@ class _ActiveChatPageState extends State<ActiveChatPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showCallPrompt() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF16161A),
-        title: const Text('Start a Call', style: TextStyle(color: Colors.white)),
-        content: const Text('Do you want a Voice Call or Video Call?', style: TextStyle(color: Colors.grey)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CallScreen(userName: widget.userName, isVideoCall: false),
-                ),
-              );
-            },
-            child: const Text('Voice Call', style: TextStyle(color: Color(0xFFBB86FC))),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CallScreen(userName: widget.userName, isVideoCall: true),
-                ),
-              );
-            },
-            child: const Text('Video Call', style: TextStyle(color: Color(0xFFBB86FC))),
-          ),
-        ],
       ),
     );
   }

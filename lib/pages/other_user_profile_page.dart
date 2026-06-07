@@ -70,32 +70,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
     );
   }
 
-  void _showCallPrompt() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF16161A),
-        title: const Text('Start a Call', style: TextStyle(color: Colors.white)),
-        content: const Text('Do you want a Voice Call or Video Call?', style: TextStyle(color: Colors.grey)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting Voice Call with $_username...')));
-            },
-            child: const Text('Voice Call', style: TextStyle(color: Color(0xFFBB86FC))),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Starting Video Call with $_username...')));
-            },
-            child: const Text('Video Call', style: TextStyle(color: Color(0xFFBB86FC))),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -250,24 +224,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: const BorderSide(color: Color(0xFFBB86FC)),
-                          ),
-                        ),
-                        onPressed: _showCallPrompt,
-                        icon: const Icon(Icons.call, color: Colors.white, size: 18),
-                        label: const Text(
-                          "Call",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

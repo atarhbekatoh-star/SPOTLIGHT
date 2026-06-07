@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 import 'pages/other_user_profile_page.dart';
 
@@ -17,6 +20,7 @@ class _DashboardPageState extends State<DashboardPage> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _allUsers = [];
   List<Map<String, dynamic>> _searchResults = [];
+  String? _currentUsername;
 
   @override
   void initState() {
@@ -26,8 +30,17 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadUsers() async {
     final users = await DatabaseHelper.instance.getAllUsers();
+    final prefs = await SharedPreferences.getInstance();
+    final currentUserJson = prefs.getString('current_user');
+    String? currentUsername;
+    if (currentUserJson != null) {
+      final userMap = jsonDecode(currentUserJson);
+      currentUsername = userMap['username']?.toString();
+    }
+
     setState(() {
       _allUsers = users;
+      _currentUsername = currentUsername;
     });
   }
 
@@ -66,7 +79,10 @@ class _DashboardPageState extends State<DashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => OtherUserProfilePage(user: user),
+                builder: (context) => OtherUserProfilePage(
+                  user: user,
+                  currentUsername: _currentUsername ?? '',
+                ),
               ),
             );
           },

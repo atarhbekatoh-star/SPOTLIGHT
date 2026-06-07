@@ -13,10 +13,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  google_fonts: ^6.2.1
+  google_fonts: ^8.1.0
   cached_network_image: ^3.4.1
   cupertino_icons: ^1.0.8
-  file_picker: ^8.0.0+1
+  file_picker: ^11.0.2
   multi_charts: ^0.3.0
   image_picker: ^1.1.2
   shared_preferences: ^2.2.3

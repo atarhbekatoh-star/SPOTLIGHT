@@ -6,12 +6,10 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'database_helper.dart';
-import 'pages/chat/calls_page.dart';
 import 'pages/chat/channels_page.dart';
 import 'pages/chat/groups_page.dart';
 import 'pages/chat/notifications_page.dart';
 import 'pages/other_user_profile_page.dart';
-import 'pages/chat/call_screen.dart';
 
 // Expanded Message Types to handle all requesting interaction modules
 enum MessageType { text, voice, sticker, image, poll }
@@ -875,17 +873,6 @@ class _ActivechatPageState extends State<ActivechatPage> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.call, color: Color(0xFFBB86FC)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CallScreen(userName: widget.starName, isVideoCall: false),
-                ),
-              );
-            },
-          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             color: const Color(0xFF16161A),
@@ -1452,4 +1439,4 @@ class _ConnectionRequestPageState extends State<ConnectionRequestPage> {
       ),
     );
   }
-}
+}
