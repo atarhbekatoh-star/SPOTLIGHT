@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
@@ -560,9 +561,12 @@ class _ActivechatPageState extends State<ActivechatPage> {
 
   bool _isOnline = false;
   String? _currentUser;
+  final ScrollController _scrollController = ScrollController();
+
   List<Map<String, dynamic>> _messages = [];
   bool _isLoadingMessages = true;
-  final ScrollController _scrollController = ScrollController();
+  StreamSubscription<List<Map<String, dynamic>>>? _messagesSubscription;
+  int _previousMessageCount = 0;
 
   @override
   void initState() {
@@ -585,7 +589,36 @@ class _ActivechatPageState extends State<ActivechatPage> {
       if (userJson != null) {
         final map = jsonDecode(userJson);
         _currentUser = map['username'];
-        _loadMessages();
+        
+        _messagesSubscription = DatabaseHelper.instance.getMessagesStream(_currentUser!, widget.starName).listen((data) {
+          if (mounted) {
+            setState(() {
+              _messages = data;
+              _isLoadingMessages = false;
+            });
+            if (_messages.length > _previousMessageCount) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    _scrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            }
+            _previousMessageCount = _messages.length;
+          }
+        }, onError: (err) {
+          if (mounted) {
+            setState(() {
+              _isLoadingMessages = false;
+            });
+          }
+        });
+
+        // Mark received messages as read
+        DatabaseHelper.instance.markMessagesAsRead(widget.starName, _currentUser!);
       } else {
         setState(() {
           _isLoadingMessages = false;
@@ -595,36 +628,6 @@ class _ActivechatPageState extends State<ActivechatPage> {
       setState(() {
         _isLoadingMessages = false;
       });
-    }
-  }
-
-  Future<void> _loadMessages() async {
-    if (_currentUser == null) {
-      setState(() {
-        _isLoadingMessages = false;
-      });
-      return;
-    }
-    try {
-      final msgs = await DatabaseHelper.instance
-          .getMessages(_currentUser!, widget.starName)
-          .timeout(const Duration(seconds: 3));
-          
-      // Mark received messages as read
-      await DatabaseHelper.instance.markMessagesAsRead(widget.starName, _currentUser!);
-      
-      if (mounted) {
-        setState(() {
-          _messages = msgs;
-          _isLoadingMessages = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMessages = false;
-        });
-      }
     }
   }
 
@@ -657,11 +660,14 @@ class _ActivechatPageState extends State<ActivechatPage> {
         'text': text,
         'type': type,
         'extra': extra,
+        'is_read': false,
         'created_at': DateTime.now().toIso8601String(),
       };
+      
       setState(() {
         _messages.add(newMsg);
       });
+      _previousMessageCount = _messages.length;
       
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
@@ -710,7 +716,10 @@ class _ActivechatPageState extends State<ActivechatPage> {
 
   @override
   void dispose() {
+    _messagesSubscription?.cancel();
     _messageController.dispose();
+    _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
