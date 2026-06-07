@@ -6,6 +6,10 @@ import 'providers/app_provider.dart';
 import 'mbti_quiz_page.dart';
 import 'pages/chat/qr_page.dart';
 import 'welcome_page.dart';
+import 'database_helper.dart';
+import 'pages/account_settings_page.dart';
+import 'pages/privacy_settings_page.dart';
+import 'pages/notification_settings_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ThemeMode currentThemeMode;
@@ -32,16 +36,32 @@ class _ProfilePageState extends State<ProfilePage> {
 
   final String bio = "Flutter enthusiast. Lifelong learner. Coffee lover. Always striving to level up my skills and connect with amazing people in the tech community.";
 
-  final int streakDays = 7;
+  int streakDays = 1;
   final int badges = 3;
   final int weeklyProgress = 68;
 
-  final int mutualFriends = 12;
-  final int mutualGroups = 3;
+  final int mutualFriends = 0;
+  final int mutualGroups = 0;
 
   bool isFollowing = false;
 
   File? _selectedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStreak();
+  }
+
+  Future<void> _loadStreak() async {
+    final streak = await DatabaseHelper.instance.getStreak(widget.userName);
+    if (mounted) {
+      setState(() {
+        streakDays = streak;
+      });
+    }
+  }
+
 
   // -----------------------------
   // MBTI DATA (UPDATABLE)
@@ -262,43 +282,6 @@ Future<void> _pickImage() async {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // FOLLOW / MESSAGE BUTTONS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          isFollowing = !isFollowing;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isFollowing ? Colors.transparent : const Color(0xFFBB86FC),
-                        foregroundColor: isFollowing ? const Color(0xFFBB86FC) : Colors.white,
-                        side: const BorderSide(color: Color(0xFFBB86FC), width: 1.5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      child: Text(isFollowing ? "Following" : "Follow"),
-                    ),
-                    const SizedBox(width: 15),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Message logic
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16161A),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      child: const Text("Message"),
-                    ),
-                  ],
                 ),
 
                 const SizedBox(height: 20),
@@ -751,7 +734,7 @@ Future<void> _pickImage() async {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const SettingsPage()),
+                  MaterialPageRoute(builder: (_) => SettingsPage(userName: widget.userName)),
                 );
               },
             ),
@@ -849,7 +832,8 @@ Future<void> _pickImage() async {
 }
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  final String userName;
+  const SettingsPage({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -868,25 +852,43 @@ class SettingsPage extends StatelessWidget {
             context,
             icon: Icons.person,
             title: "Account Settings",
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AccountSettingsPage(userName: userName)),
+              );
+            },
           ),
           _buildSettingsTile(
             context,
             icon: Icons.lock,
             title: "Privacy",
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacySettingsPage()),
+              );
+            },
           ),
           _buildSettingsTile(
             context,
             icon: Icons.notifications,
             title: "Notifications",
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+              );
+            },
           ),
           const SizedBox(height: 20),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),
             title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            onTap: () {
+            onTap: () async {
+              await DatabaseHelper.instance.logoutUser();
+              if (!context.mounted) return;
+              context.read<AppProvider>().resetData();
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const WelcomePage()),
                 (Route<dynamic> route) => false,

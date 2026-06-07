@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_provider.dart';
 class QRPage extends StatefulWidget {
   const QRPage({super.key});
 
@@ -96,32 +99,50 @@ class _QRPageState extends State<QRPage> with SingleTickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 30),
-          const Text(
-            "@sandra_user",
-            style: TextStyle(
-              color: Color(0xFFBB86FC),
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: 'https://spotlight.app/qr/sandra_user'));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Profile link copied to clipboard! Share it with friends.'),
-                  backgroundColor: Color(0xFFBB86FC),
-                ),
+          FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, snapshot) {
+              String username = 'user';
+              if (snapshot.hasData) {
+                final userJson = snapshot.data!.getString('current_user');
+                if (userJson != null) {
+                  final userMap = jsonDecode(userJson);
+                  username = userMap['username'] ?? 'user';
+                }
+              }
+              return Column(
+                children: [
+                  Text(
+                    "@$username",
+                    style: const TextStyle(
+                      color: Color(0xFFBB86FC),
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: 'https://spotlight.app/qr/$username'));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profile link copied to clipboard! Share it with friends.'),
+                          backgroundColor: Color(0xFFBB86FC),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.share, color: Colors.white),
+                    label: const Text('Share Profile', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFBB86FC).withAlpha(80),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ],
               );
             },
-            icon: const Icon(Icons.share, color: Colors.white),
-            label: const Text('Share Profile', style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFBB86FC).withAlpha(80),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
           ),
+
         ],
       ),
     );

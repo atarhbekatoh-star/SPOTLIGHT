@@ -66,6 +66,26 @@ class Channel {
     required this.isFollowing,
     required this.bannerUrl,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'avatarUrl': avatarUrl,
+        'followersCount': followersCount,
+        'isFollowing': isFollowing,
+        'bannerUrl': bannerUrl,
+      };
+
+  factory Channel.fromJson(Map<String, dynamic> json) => Channel(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String,
+        avatarUrl: json['avatarUrl'] as String,
+        followersCount: json['followersCount'] as int,
+        isFollowing: json['isFollowing'] as bool,
+        bannerUrl: json['bannerUrl'] as String,
+      );
 }
 
 class Group {
@@ -84,6 +104,24 @@ class Group {
     required this.members,
     required this.admins,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'avatarUrl': avatarUrl,
+        'members': members,
+        'admins': admins,
+      };
+
+  factory Group.fromJson(Map<String, dynamic> json) => Group(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String,
+        avatarUrl: json['avatarUrl'] as String,
+        members: List<String>.from(json['members'] ?? []),
+        admins: List<String>.from(json['admins'] ?? []),
+      );
 }
 
 class CallSession {

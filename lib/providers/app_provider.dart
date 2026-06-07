@@ -12,6 +12,7 @@ class AppProvider extends ChangeNotifier {
   String? _lastPracticeDate;
   int _rewardStreak = 0;
   String? _lastClaimDate;
+  bool isPersuasionUnlocked = false;
 
   // Social connection statuses cache: username -> status map
   final Map<String, Map<String, bool>> _connectionStatuses = {};
@@ -30,6 +31,7 @@ class AppProvider extends ChangeNotifier {
     _lastPracticeDate = prefs.getString('last_practice_date');
     _rewardStreak = prefs.getInt('rewardStreak') ?? 0;
     _lastClaimDate = prefs.getString('lastClaimDate');
+    isPersuasionUnlocked = prefs.getBool('persuasion_unlocked') ?? false;
 
     final savedTheme = prefs.getString('themeMode');
     if (savedTheme == 'light') {
@@ -58,6 +60,26 @@ class AppProvider extends ChangeNotifier {
     if (_lastClaimDate != null) {
       await prefs.setString('lastClaimDate', _lastClaimDate!);
     }
+    await prefs.setBool('persuasion_unlocked', isPersuasionUnlocked);
+  }
+
+  void resetData() {
+    xp = 0;
+    credits = 0;
+    unlockedItems = [];
+    _practiceStep = 0;
+    _lastPracticeDate = null;
+    _rewardStreak = 0;
+    _lastClaimDate = null;
+    isPersuasionUnlocked = false;
+    _connectionStatuses.clear();
+    notifyListeners();
+  }
+
+  void unlockPersuasion() {
+    isPersuasionUnlocked = true;
+    _saveData();
+    notifyListeners();
   }
 
   void completeMission(int xpToAdd, int creditsToAdd) {
@@ -75,6 +97,10 @@ class AppProvider extends ChangeNotifier {
     xp += xpToAdd;
     credits += creditsToAdd;
     _practiceStep++;
+
+    if (xp >= 30 && !isPersuasionUnlocked) {
+      isPersuasionUnlocked = true;
+    }
 
     if (_practiceStep >= 4) {
        _lastPracticeDate = DateTime.now().toIso8601String();
@@ -209,6 +235,11 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> sendFriendRequest(String me, String them) async {
     await DatabaseHelper.instance.sendFriendRequest(me, them);
+    await loadConnectionStatus(me, them);
+  }
+
+  Future<void> cancelFriendRequest(String me, String them) async {
+    await DatabaseHelper.instance.cancelFriendRequest(me, them);
     await loadConnectionStatus(me, them);
   }
 

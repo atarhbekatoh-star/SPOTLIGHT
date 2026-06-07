@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_models.dart';
@@ -32,6 +33,19 @@ class ChatProvider with ChangeNotifier {
     _pinnedChats = prefs.getStringList('pinned_chats') ?? [];
     _mutedChats = prefs.getStringList('muted_chats') ?? [];
     _followedChannels = prefs.getStringList('followed_channels') ?? [];
+
+    final channelsJson = prefs.getString('channels_data');
+    if (channelsJson != null) {
+      final List<dynamic> decoded = jsonDecode(channelsJson);
+      _channels = decoded.map((e) => Channel.fromJson(e)).toList();
+    }
+
+    final groupsJson = prefs.getString('groups_data');
+    if (groupsJson != null) {
+      final List<dynamic> decoded = jsonDecode(groupsJson);
+      _groups = decoded.map((e) => Group.fromJson(e)).toList();
+    }
+    
     notifyListeners();
   }
 
@@ -40,6 +54,9 @@ class ChatProvider with ChangeNotifier {
     await prefs.setStringList('pinned_chats', _pinnedChats);
     await prefs.setStringList('muted_chats', _mutedChats);
     await prefs.setStringList('followed_channels', _followedChannels);
+    
+    await prefs.setString('channels_data', jsonEncode(_channels.map((e) => e.toJson()).toList()));
+    await prefs.setString('groups_data', jsonEncode(_groups.map((e) => e.toJson()).toList()));
   }
 
   void togglePinChat(String chatId) {
@@ -74,6 +91,7 @@ class ChatProvider with ChangeNotifier {
 
   void sendMessage(ChatMessage message) {
     _chats.add(message);
+    _savePreferences();
     notifyListeners();
   }
 
@@ -103,6 +121,7 @@ class ChatProvider with ChangeNotifier {
         reactions: newReactions,
         filePath: message.filePath,
       );
+      _savePreferences();
       notifyListeners();
     }
   }
@@ -119,6 +138,85 @@ class ChatProvider with ChangeNotifier {
     if (chats != null) _chats = chats;
     if (calls != null) _calls = calls;
     if (notifications != null) _notifications = notifications;
+    _savePreferences();
     notifyListeners();
+  }
+
+  // --- Channels ---
+  void createChannel(Channel channel) {
+    _channels.add(channel);
+    _savePreferences();
+    notifyListeners();
+  }
+
+  void editChannel(String id, String name, String description) {
+    final index = _channels.indexWhere((c) => c.id == id);
+    if (index != -1) {
+      final old = _channels[index];
+      _channels[index] = Channel(
+        id: old.id,
+        name: name,
+        description: description,
+        avatarUrl: old.avatarUrl,
+        followersCount: old.followersCount,
+        isFollowing: old.isFollowing,
+        bannerUrl: old.bannerUrl,
+      );
+      _savePreferences();
+      notifyListeners();
+    }
+  }
+
+  void deleteChannel(String id) {
+    _channels.removeWhere((c) => c.id == id);
+    _savePreferences();
+    notifyListeners();
+  }
+
+  // --- Groups ---
+  void createGroup(Group group) {
+    _groups.add(group);
+    _savePreferences();
+    notifyListeners();
+  }
+
+  void joinGroup(String id, String userId) {
+    final index = _groups.indexWhere((g) => g.id == id);
+    if (index != -1) {
+      final old = _groups[index];
+      if (!old.members.contains(userId)) {
+        final newMembers = List<String>.from(old.members)..add(userId);
+        _groups[index] = Group(
+          id: old.id,
+          name: old.name,
+          description: old.description,
+          avatarUrl: old.avatarUrl,
+          members: newMembers,
+          admins: old.admins,
+        );
+        _savePreferences();
+        notifyListeners();
+      }
+    }
+  }
+
+  void leaveGroup(String id, String userId) {
+    final index = _groups.indexWhere((g) => g.id == id);
+    if (index != -1) {
+      final old = _groups[index];
+      if (old.members.contains(userId)) {
+        final newMembers = List<String>.from(old.members)..remove(userId);
+        _groups[index] = Group(
+          id: old.id,
+          name: old.name,
+          description: old.description,
+          avatarUrl: old.avatarUrl,
+          members: newMembers,
+          admins: old.admins,
+        );
+        _savePreferences();
+        notifyListeners();
+      }
+    }
   }
 }

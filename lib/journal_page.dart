@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -107,10 +107,10 @@ class _JournalPageState extends State<JournalPage> {
   }
 
   Future<void> _saveReflection() async {
-    if (_journalController.text.isEmpty) {
+    if (_journalController.text.isEmpty && _voiceNote == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please write how you feel before saving.'),
+          content: const Text('Please write how you feel or record a voice note before saving.'),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -174,7 +174,7 @@ class _JournalPageState extends State<JournalPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "MY JORNAL",
+          "MY JOURNAL",
           style: TextStyle(
             color: purpleGlow,
             fontWeight: FontWeight.bold,
@@ -532,110 +532,307 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
     const Color cardBackground = Color(0xFF11162D);
 
     final date = DateTime.tryParse(widget.entry['date'] ?? '') ?? DateTime.now();
-    final formattedDate = "\${date.day}/\${date.month}/\${date.year} \${date.hour}:\${date.minute.toString().padLeft(2, '0')}";
+    final formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+    final formattedTime = "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+    final mood = widget.entry['mood'];
+    final text = widget.entry['text'];
+    final imagePath = widget.entry['imagePath'];
+    final voiceNote = widget.entry['voiceNote'];
+    final entryType = voiceNote != null ? "Voice" : "Text";
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => JournalDetailsPage(entry: widget.entry),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cardBackground,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: purpleGlow.withAlpha(30)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(50),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formattedDate,
+                      style: TextStyle(color: purpleGlow.withAlpha(180), fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "$formattedTime • $entryType",
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+                if (mood != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: purpleGlow.withAlpha(30),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      mood.toString(),
+                      style: const TextStyle(color: purpleGlow, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (text != null && text.toString().isNotEmpty)
+              Text(
+                text.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            if (imagePath != null) ...[
+              const SizedBox(height: 15),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(imagePath),
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 180,
+                    color: Colors.grey[900],
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                  ),
+                ),
+              ),
+            ],
+            if (voiceNote != null) ...[
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(50),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: purpleGlow.withAlpha(40)),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _togglePlay,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: purpleGlow.withAlpha(_isPlaying ? 80 : 40),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: purpleGlow, size: 22),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        "Voice Recording",
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class JournalDetailsPage extends StatefulWidget {
+  final Map<String, dynamic> entry;
+
+  const JournalDetailsPage({super.key, required this.entry});
+
+  @override
+  State<JournalDetailsPage> createState() => _JournalDetailsPageState();
+}
+
+class _JournalDetailsPageState extends State<JournalDetailsPage> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _isPlaying = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlay() async {
+    final voiceNote = widget.entry['voiceNote'];
+    if (voiceNote == null) return;
+
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+      if (mounted) setState(() => _isPlaying = false);
+    } else {
+      await _audioPlayer.play(DeviceFileSource(voiceNote));
+      if (mounted) setState(() => _isPlaying = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color purpleGlow = Color(0xFFBB86FC);
+    const Color darkBackground = Color(0xFF060914);
+
+    final date = DateTime.tryParse(widget.entry['date'] ?? '') ?? DateTime.now();
+    final formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+    final formattedTime = "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
     final mood = widget.entry['mood'];
     final text = widget.entry['text'];
     final imagePath = widget.entry['imagePath'];
     final voiceNote = widget.entry['voiceNote'];
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBackground,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: purpleGlow.withAlpha(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(50),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formattedDate,
-                style: TextStyle(color: purpleGlow.withAlpha(180), fontSize: 13),
-              ),
-              if (mood != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: purpleGlow.withAlpha(30),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    mood.toString(),
-                    style: const TextStyle(color: purpleGlow, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-            ],
+    return Scaffold(
+      backgroundColor: darkBackground,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: purpleGlow),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "JOURNAL DETAILS",
+          style: TextStyle(
+            color: purpleGlow,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
           ),
-          const SizedBox(height: 12),
-          if (text != null && text.toString().isNotEmpty)
-            Text(
-              text.toString(),
-              style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formattedDate,
+                      style: TextStyle(color: purpleGlow.withAlpha(200), fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      formattedTime,
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+                if (mood != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: purpleGlow.withAlpha(40),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: purpleGlow.withAlpha(80)),
+                    ),
+                    child: Text(
+                      mood.toString(),
+                      style: const TextStyle(color: purpleGlow, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
             ),
-          if (imagePath != null) ...[
-            const SizedBox(height: 15),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.file(
-                File(imagePath),
-                width: double.infinity,
-                height: 180,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 180,
-                  color: Colors.grey[900],
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+            const SizedBox(height: 25),
+            if (text != null && text.toString().isNotEmpty)
+              Text(
+                text.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.6),
+              ),
+            if (imagePath != null) ...[
+              const SizedBox(height: 25),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.file(
+                  File(imagePath),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 200,
+                    color: Colors.grey[900],
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.broken_image, color: Colors.grey, size: 50),
+                  ),
                 ),
               ),
-            ),
-          ],
-          if (voiceNote != null) ...[
-            const SizedBox(height: 15),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.black.withAlpha(50),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: purpleGlow.withAlpha(40)),
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: _togglePlay,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: purpleGlow.withAlpha(_isPlaying ? 80 : 40),
-                        shape: BoxShape.circle,
+            ],
+            if (voiceNote != null) ...[
+              const SizedBox(height: 25),
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(80),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: purpleGlow.withAlpha(60)),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _togglePlay,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: purpleGlow.withAlpha(_isPlaying ? 100 : 50),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: purpleGlow, size: 28),
                       ),
-                      child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, color: purpleGlow, size: 22),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      "Voice Recording",
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    const SizedBox(width: 15),
+                    const Expanded(
+                      child: Text(
+                        "Voice Recording",
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

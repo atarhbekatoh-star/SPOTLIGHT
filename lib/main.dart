@@ -90,7 +90,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      DashboardView(onNavigateToProfile: () => _onTabTapped(3), userName: widget.userName),
+      DashboardView(onNavigateToProfile: () => _onTabTapped(3), onNavigateToPractice: () => _onTabTapped(2), userName: widget.userName),
       ChatPage(),
       const SkillsPage(), // Practice tab
       ProfilePage(
@@ -123,9 +123,10 @@ class _MainScreenState extends State<MainScreen> {
 
 class DashboardView extends StatelessWidget {
   final VoidCallback onNavigateToProfile;
+  final VoidCallback onNavigateToPractice;
   final String userName;
 
-  const DashboardView({super.key, required this.onNavigateToProfile, required this.userName});
+  const DashboardView({super.key, required this.onNavigateToProfile, required this.onNavigateToPractice, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +201,7 @@ class DashboardView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 15),
-                  const DailyMissionCard(),
+                  DailyMissionCard(onStartPressed: onNavigateToPractice),
 
                   const SizedBox(height: 30),
                   Row(

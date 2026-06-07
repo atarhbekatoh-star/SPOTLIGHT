@@ -131,6 +131,18 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<void> logoutUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('current_user');
+    await prefs.remove('xp');
+    await prefs.remove('credits');
+    await prefs.remove('unlockedItems');
+    await prefs.remove('practice_step');
+    await prefs.remove('last_practice_date');
+    await prefs.remove('rewardStreak');
+    await prefs.remove('lastClaimDate');
+  }
+
   Future<List<Map<String, dynamic>>> getAllUsers([String? excludeUsername]) async {
     final result = await supabase.from('users').select();
     
@@ -315,6 +327,7 @@ class DatabaseHelper {
   // ========================
 
   Future<void> sendFriendRequest(String sender, String receiver) async {
+    if (sender == receiver) return;
     await supabase.from('friend_requests').upsert({
       'sender': sender,
       'receiver': receiver,
@@ -330,6 +343,15 @@ class DatabaseHelper {
         .eq('sender', sender)
         .eq('receiver', receiver);
     await addNotification(sender, 'Friend Request Accepted', '${receiver} accepted your friend request');
+  }
+
+  Future<void> cancelFriendRequest(String sender, String receiver) async {
+    await supabase
+        .from('friend_requests')
+        .delete()
+        .eq('sender', sender)
+        .eq('receiver', receiver)
+        .eq('status', 'pending');
   }
 
   Future<void> declineFriendRequest(String sender, String receiver) async {
@@ -349,6 +371,7 @@ class DatabaseHelper {
   }
 
   Future<void> followUser(String follower, String following) async {
+    if (follower == following) return;
     try {
       await supabase.from('follows').insert({
         'follower': follower,

@@ -253,7 +253,7 @@ class _SkillsPageState extends State<SkillsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: categories.length,
               itemBuilder: (context, index) {
-                return _buildVerticalSkillCard(context, categories[index], index, currentPracticeStep, isPracticeLocked);
+                return _buildVerticalSkillCard(context, categories[index], index, currentPracticeStep, isPracticeLocked, appProvider);
               },
             ),
           ),
@@ -262,14 +262,28 @@ class _SkillsPageState extends State<SkillsPage> {
     );
   }
 
-  Widget _buildVerticalSkillCard(BuildContext context, SkillCategory category, int index, int currentStep, bool isPracticeLocked) {
+  Widget _buildVerticalSkillCard(BuildContext context, SkillCategory category, int index, int currentStep, bool isPracticeLocked, AppProvider appProvider) {
     int completedCount = category.missions.where((m) => m.isCompleted).length;
     int totalCount = category.missions.length;
     double progress = totalCount > 0 ? completedCount / totalCount : 0;
 
-    // Strict Sequence: Persuasion (index 4) isn't explicitly in the 0-3 loop, 
-    // but if we are at step 4 it's locked. We just let it be locked if index != currentStep
-    bool isLocked = isPracticeLocked || index != currentStep;
+    // Strict Sequence: Persuasion (index 4)
+    bool isLocked = false;
+    String lockReason = "";
+    
+    if (index == 4) {
+      if (!appProvider.isPersuasionUnlocked) {
+        isLocked = true;
+        lockReason = "Complete previous missions to unlock Persuasion!";
+      }
+    } else {
+      isLocked = isPracticeLocked || index != currentStep;
+      if (isPracticeLocked) {
+        lockReason = "Practice is locked for 24 hours. Come back tomorrow!";
+      } else if (index != currentStep) {
+        lockReason = "Complete the previous category first!";
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
@@ -279,7 +293,7 @@ class _SkillsPageState extends State<SkillsPage> {
           onTap: isLocked ? () {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(isPracticeLocked ? "Practice is locked for 24 hours. Come back tomorrow!" : "Complete the previous category first!"),
+                content: Text(lockReason),
                 backgroundColor: Colors.orange,
               ),
             );
