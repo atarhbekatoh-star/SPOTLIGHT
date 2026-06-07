@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
-import '../../providers/app_provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
 class QRPage extends StatefulWidget {
   const QRPage({super.key});
 
@@ -86,19 +86,6 @@ class _QRPageState extends State<QRPage> with SingleTickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 30),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.qr_code_2,
-              size: 200,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 30),
           FutureBuilder<SharedPreferences>(
             future: SharedPreferences.getInstance(),
             builder: (context, snapshot) {
@@ -110,8 +97,24 @@ class _QRPageState extends State<QRPage> with SingleTickerProviderStateMixin {
                   username = userMap['username'] ?? 'user';
                 }
               }
+              
+              final qrData = 'https://spotlight.app/qr/$username';
+              
               return Column(
                 children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      size: 200.0,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
                   Text(
                     "@$username",
                     style: const TextStyle(
@@ -122,7 +125,7 @@ class _QRPageState extends State<QRPage> with SingleTickerProviderStateMixin {
                   const SizedBox(height: 30),
                   ElevatedButton.icon(
                     onPressed: () {
-                      Clipboard.setData(ClipboardData(text: 'https://spotlight.app/qr/$username'));
+                      Clipboard.setData(ClipboardData(text: qrData));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Profile link copied to clipboard! Share it with friends.'),
@@ -142,7 +145,6 @@ class _QRPageState extends State<QRPage> with SingleTickerProviderStateMixin {
               );
             },
           ),
-
         ],
       ),
     );

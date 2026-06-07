@@ -13,14 +13,35 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
   File? _image;
 
   Future<void> _pickImage() async {
-    FilePickerResult? result = await FilePicker.pickFiles(
-      type: FileType.image,
-    );
+    try {
+      FilePickerResult? result = await FilePicker.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
 
-    if (result != null) {
-      setState(() {
-        _image = File(result.files.single.path!);
-      });
+      if (result != null && result.files.isNotEmpty) {
+        final pickedFile = result.files.first;
+        if (pickedFile.path != null) {
+          final file = File(pickedFile.path!);
+          if (await file.exists()) {
+            setState(() {
+              _image = file;
+            });
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('File not found')),
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
     }
   }
 
