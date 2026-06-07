@@ -1,1 +1,0 @@
- C:\\Users\\SANDRA\\Desktop\\Spotlight\ 1\\build\\297d0d4a9eb6023677ecc1eb4c05c607\\dart_build_result.json:  C:\\Users\\SANDRA\\Desktop\\Spotlight\ 1\\.dart_tool\\package_config.json C:\\Users\\SANDRA\\Desktop\\Spotlight\ 1\\pubspec.yaml C:\\src\\flutter\\bin\\cache\\dart-sdk\\version c:\\users\\sandra\\desktop\\spotlight\ 1\\.dart_tool\\package_config.json
