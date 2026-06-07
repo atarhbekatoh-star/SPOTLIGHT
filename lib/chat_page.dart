@@ -1,11 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'database_helper.dart';
 import 'pages/chat/calls_page.dart';
 import 'pages/chat/channels_page.dart';
 import 'pages/chat/groups_page.dart';
 import 'pages/chat/notifications_page.dart';
 import 'pages/other_user_profile_page.dart';
+import 'pages/chat/call_screen.dart';
 
 // Expanded Message Types to handle all requesting interaction modules
 enum MessageType { text, voice, sticker, image, poll }
@@ -57,35 +62,34 @@ class ChatMessage {
 }
 
 class AppStateManager {
-  static final List<CoStar> _allChats = [
-    CoStar(
-      name: 'John Tornton',
-      level: 3,
-      lastMessage: 'Maybe on Friday? Can you show...',
-      streak: 5,
-      avatarUrl: '',
-      time: '12:30',
-      unreadCount: 5,
-    ),
-    CoStar(
-      name: 'Amanda Buyns',
-      level: 5,
-      lastMessage: 'See you tomorrow. Ask them ab...',
-      streak: 3,
-      avatarUrl: '',
-      time: '11:29',
-    ),
-    CoStar(
-      name: 'Russel Hue',
-      level: 3,
-      lastMessage: 'Good! Send you their visual!',
-      streak: 4,
-      avatarUrl: '',
-      time: 'Fri',
-    ),
-  ];
+  static List<CoStar> _allChats = [];
+  static final ValueNotifier<List<CoStar>> activeChats = ValueNotifier([]);
 
-  static final ValueNotifier<List<CoStar>> activeChats = ValueNotifier(List.from(_allChats));
+  static Future<void> loadChatsFromSupabase() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUserJson = prefs.getString('current_user');
+    String? currentUsername;
+    if (currentUserJson != null) {
+      final userMap = jsonDecode(currentUserJson);
+      currentUsername = userMap['username'];
+    }
+
+    final users = await DatabaseHelper.instance.getAllUsers(currentUsername);
+    _allChats = users.map((u) {
+      return CoStar(
+        name: u['username'] ?? 'Unknown',
+        level: u['level'] ?? 1,
+        lastMessage: 'Tap to chat...',
+        streak: u['streakCount'] ?? 0,
+        avatarUrl: '',
+        time: '',
+      );
+    }).toList();
+    activeChats.value = List.from(_allChats);
+  }
+
+
+
   
   static void filterChats(String query) {
     if (query.isEmpty) {
@@ -238,6 +242,12 @@ class ConnectionsDashboardPage extends StatefulWidget {
 class _ConnectionsDashboardPageState extends State<ConnectionsDashboardPage> {
   String selectedFilter = "All";
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    AppStateManager.loadChatsFromSupabase();
+  }
 
   void _showRequestsBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -526,6 +536,44 @@ class ActivechatPage extends StatefulWidget {
 class _ActivechatPageState extends State<ActivechatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  bool _showEmoji = false;
+  final FocusNode _focusNode = FocusNode();
+
+  bool _isOnline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnlineStatus();
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        setState(() {
+          _showEmoji = false;
+        });
+      }
+    });
+  }
+
+  Future<void> _checkOnlineStatus() async {
+    try {
+      final users = await DatabaseHelper.instance.getAllUsers();
+      final otherUser = users.firstWhere((u) => u['username'] == widget.starName, orElse: () => {});
+      bool isOnline = false;
+      if (otherUser.isNotEmpty) {
+        String today = DateTime.now().toIso8601String().split('T')[0];
+        if (otherUser['lastLoginDate'] == today) {
+          isOnline = true;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
 
   @override
   void dispose() {
@@ -674,13 +722,73 @@ class _ActivechatPageState extends State<ActivechatPage> {
               ),
             ),
             const SizedBox(width: 12),
-            Text(widget.starName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(widget.starName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(_isOnline ? 'Online' : 'Offline', style: TextStyle(color: _isOnline ? const Color(0xFFEFFF8A) : Colors.grey, fontSize: 12)),
+              ],
+            ),
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.call, color: Color(0xFFBB86FC)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CallScreen(userName: widget.starName, isVideoCall: false),
+                ),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             color: const Color(0xFF16161A),
+            onSelected: (value) async {
+              if (value == 'profile') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CoStarProfilePage(starName: widget.starName),
+                  ),
+                );
+              } else if (value == 'mute') {
+                final prefs = await SharedPreferences.getInstance();
+                final currentUserJson = prefs.getString('current_user');
+                if (currentUserJson != null) {
+                  final userMap = jsonDecode(currentUserJson);
+                  List<dynamic> muted = userMap['muted_users'] ?? [];
+                  if (!muted.contains(widget.starName)) muted.add(widget.starName);
+                  userMap['muted_users'] = muted;
+                  
+                  await DatabaseHelper.instance.supabase.from('users').update({
+                    'extraData': jsonEncode(userMap),
+                  }).eq('username', userMap['username']);
+                  
+                  await prefs.setString('current_user', jsonEncode(userMap));
+                }
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Muted notifications for ${widget.starName}')));
+              } else if (value == 'block') {
+                final prefs = await SharedPreferences.getInstance();
+                final currentUserJson = prefs.getString('current_user');
+                if (currentUserJson != null) {
+                  final userMap = jsonDecode(currentUserJson);
+                  List<dynamic> blocked = userMap['blocked_users'] ?? [];
+                  if (!blocked.contains(widget.starName)) blocked.add(widget.starName);
+                  userMap['blocked_users'] = blocked;
+                  
+                  await DatabaseHelper.instance.supabase.from('users').update({
+                    'extraData': jsonEncode(userMap),
+                  }).eq('username', userMap['username']);
+                  
+                  await prefs.setString('current_user', jsonEncode(userMap));
+                }
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Blocked ${widget.starName}')));
+              }
+            },
             itemBuilder: (BuildContext context) => [
               const PopupMenuItem(value: 'profile', child: Text('View Star Profile', style: TextStyle(color: Colors.white))),
               const PopupMenuItem(value: 'mute', child: Text('Mute Notifications', style: TextStyle(color: Colors.white))),
@@ -720,9 +828,22 @@ class _ActivechatPageState extends State<ActivechatPage> {
                           color: msg.isMe ? const Color(0xFFBB86FC) : const Color(0xFF16161A),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(
-                          msg.text,
-                          style: TextStyle(color: msg.isMe ? Colors.black : Colors.white, fontSize: 14),
+                        child: Column(
+                          crossAxisAlignment: msg.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              msg.text,
+                              style: TextStyle(color: msg.isMe ? Colors.black : Colors.white, fontSize: 14),
+                            ),
+                            if (msg.isMe) ...[
+                              const SizedBox(height: 2),
+                              Icon(
+                                _isOnline ? Icons.done_all : Icons.check,
+                                color: Colors.black54,
+                                size: 14,
+                              ),
+                            ]
+                          ],
                         ),
                       ),
                     );
@@ -745,14 +866,22 @@ class _ActivechatPageState extends State<ActivechatPage> {
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.sentiment_satisfied_alt, color: Colors.grey),
+                          icon: Icon(_showEmoji ? Icons.keyboard : Icons.sentiment_satisfied_alt, color: Colors.grey),
                           onPressed: () {
-                            AppStateManager.addMessage('🎨', true, type: MessageType.sticker);
+                            setState(() {
+                              _showEmoji = !_showEmoji;
+                              if (_showEmoji) {
+                                _focusNode.unfocus();
+                              } else {
+                                _focusNode.requestFocus();
+                              }
+                            });
                           },
                         ),
                         Expanded(
                           child: TextField(
                             controller: _messageController,
+                            focusNode: _focusNode,
                             style: const TextStyle(color: Colors.white),
                             decoration: const InputDecoration(
                               hintText: "Type a message...",
@@ -792,6 +921,14 @@ class _ActivechatPageState extends State<ActivechatPage> {
               ],
             ),
           ),
+          if (_showEmoji)
+            SizedBox(
+              height: 250,
+              child: EmojiPicker(
+                textEditingController: _messageController,
+                config: const Config(),
+              ),
+            ),
         ],
       ),
     );

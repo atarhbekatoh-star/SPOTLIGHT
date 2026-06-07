@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class DailyMissionCard extends StatelessWidget {
-  const DailyMissionCard({super.key});
+  final VoidCallback onStartPressed;
+  const DailyMissionCard({super.key, required this.onStartPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +87,7 @@ class DailyMissionCard extends StatelessWidget {
                 ),
               ),
               ElevatedButton(
-                onPressed: () => debugPrint("Mission Started!"),
+                onPressed: onStartPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF311B92),

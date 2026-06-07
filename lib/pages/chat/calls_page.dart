@@ -1,61 +1,74 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../widgets/chat/call_card.dart';
 
-class CallsPage extends StatelessWidget {
+class CallsPage extends StatefulWidget {
   const CallsPage({Key? key}) : super(key: key);
+
+  @override
+  State<CallsPage> createState() => _CallsPageState();
+}
+
+class _CallsPageState extends State<CallsPage> {
+  List<Map<String, dynamic>> _callHistory = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCallHistory();
+  }
+
+  Future<void> _loadCallHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final callHistoryStr = prefs.getStringList('call_history') ?? [];
+    
+    setState(() {
+      _callHistory = callHistoryStr.map((str) => jsonDecode(str) as Map<String, dynamic>).toList();
+      _isLoading = false;
+    });
+  }
+
+  String _formatDate(String isoString) {
+    try {
+      final date = DateTime.parse(isoString);
+      final minutes = date.minute.toString().padLeft(2, '0');
+      return '${date.month}/${date.day} at ${date.hour}:$minutes';
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
+
+  String _formatDuration(int seconds) {
+    if (seconds == 0) return '';
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return ' (${m}m ${s}s)';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0F),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildSectionTitle('Ongoing Calls'),
-          const CallCard(
-            title: 'Design Sync',
-            subtitle: 'Started 5 mins ago',
-            status: 'Outgoing',
-            isVideo: true,
-          ),
-          const SizedBox(height: 16),
-          
-          _buildSectionTitle('Upcoming Calls'),
-          const CallCard(
-            title: 'Marketing Standup',
-            subtitle: 'Today, 3:00 PM',
-            status: 'Incoming',
-            isVideo: false,
-          ),
-          const CallCard(
-            title: 'John Doe',
-            subtitle: 'Tomorrow, 10:00 AM',
-            status: 'Incoming',
-            isVideo: true,
-          ),
-          const SizedBox(height: 16),
-          
-          _buildSectionTitle('Call History'),
-          const CallCard(
-            title: 'Jane Smith',
-            subtitle: 'Yesterday, 4:30 PM',
-            status: 'Missed',
-            isVideo: false,
-          ),
-          const CallCard(
-            title: 'Alex Johnson',
-            subtitle: 'Yesterday, 1:15 PM',
-            status: 'Outgoing',
-            isVideo: true,
-          ),
-          const CallCard(
-            title: 'Team Alpha',
-            subtitle: 'Monday, 11:00 AM',
-            status: 'Incoming',
-            isVideo: true,
-          ),
-        ],
-      ),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFFBB86FC)))
+        : _callHistory.isEmpty
+          ? const Center(child: Text("No calls yet.", style: TextStyle(color: Colors.grey)))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildSectionTitle('Call History'),
+                ..._callHistory.map((call) {
+                  return CallCard(
+                    title: call['receiver'] ?? 'Unknown',
+                    subtitle: '${_formatDate(call['date'])}${_formatDuration(call['duration'] ?? 0)}',
+                    status: call['status'] ?? 'Unknown',
+                    isVideo: call['isVideo'] == true,
+                  );
+                }).toList(),
+              ],
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
         backgroundColor: const Color(0xFFBB86FC),

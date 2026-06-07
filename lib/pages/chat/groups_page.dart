@@ -1,61 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../widgets/chat/group_card.dart';
+import '../../providers/chat_provider.dart';
+import '../../models/chat_models.dart';
+import 'group_detail_page.dart';
 
 class GroupsPage extends StatelessWidget {
   const GroupsPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+    final groups = chatProvider.groups;
+    // For simulation, let's say "myUserId" is current user.
+    final String myUserId = 'me'; 
+    final myGroups = groups.where((g) => g.members.contains(myUserId)).toList();
+    final discoverGroups = groups.where((g) => !g.members.contains(myUserId)).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0F),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSectionTitle('My Groups'),
-          const GroupCard(
-            name: 'Project Alpha Team',
-            lastMessage: 'Alice: I just pushed the latest changes.',
-            time: '10:42 AM',
-            unreadCount: 3,
-            memberAvatars: ['a', 'b', 'c', 'd'],
-            isMember: true,
-          ),
-          const GroupCard(
-            name: 'Weekend Getaway',
-            lastMessage: 'Bob: Are we still on for Saturday?',
-            time: 'Yesterday',
-            unreadCount: 0,
-            memberAvatars: ['x', 'y', 'z'],
-            isMember: true,
-          ),
-          const SizedBox(height: 20),
+          if (myGroups.isNotEmpty) ...[
+            _buildSectionTitle('My Groups'),
+            ...myGroups.map((g) => GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => GroupDetailPage(group: g, myUserId: myUserId)));
+                  },
+                  child: GroupCard(
+                    name: g.name,
+                    lastMessage: 'Tap to view messages',
+                    time: '',
+                    unreadCount: 0,
+                    memberAvatars: g.members,
+                    isMember: true,
+                  ),
+                )),
+            const SizedBox(height: 20),
+          ],
           
           _buildSectionTitle('Discover Groups'),
-          const GroupCard(
-            name: 'Local Photographers',
-            lastMessage: 'Share your latest snaps!',
-            time: '',
-            memberAvatars: ['1', '2', '3', '4', '5'],
-            isMember: false,
-          ),
-          const GroupCard(
-            name: 'Book Club - SciFi',
-            lastMessage: 'Discussing Dune this month.',
-            time: '',
-            memberAvatars: ['a', 'b'],
-            isMember: false,
-          ),
-          const GroupCard(
-            name: 'Fitness Enthusiasts',
-            lastMessage: 'Workout plans and tips.',
-            time: '',
-            memberAvatars: ['a', 'b', 'c'],
-            isMember: false,
-          ),
+          if (discoverGroups.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text("No groups available. Create one!", style: TextStyle(color: Colors.white54)),
+            ),
+          ...discoverGroups.map((g) => GestureDetector(
+                onTap: () {
+                  chatProvider.joinGroup(g.id, myUserId);
+                },
+                child: GroupCard(
+                  name: g.name,
+                  lastMessage: g.description,
+                  time: '',
+                  memberAvatars: g.members,
+                  isMember: false,
+                ),
+              )),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          final newGroup = Group(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            name: 'New Group \${chatProvider.groups.length + 1}',
+            description: 'A brand new group.',
+            avatarUrl: '',
+            members: [myUserId],
+            admins: [myUserId],
+          );
+          chatProvider.createGroup(newGroup);
+        },
         backgroundColor: const Color(0xFFBB86FC),
         child: const Icon(Icons.group_add, color: Colors.black),
       ),

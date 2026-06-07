@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../chat_page.dart';
-import 'chat/active_chat_page.dart';
+// import 'chat/active_chat_page.dart';
 import '../providers/app_provider.dart';
 import 'connections_list_page.dart';
 
@@ -49,9 +49,12 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
     final status = appProvider.getConnectionStatus(_username) ?? {'isFriend': false, 'isPendingRequest': false};
     
     if (status['isFriend'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You are already friends!')));
+      // Unfriend logic (we don't have it explicitly but we can just say "Already friends")
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You are already friends!')));
     } else if (status['isPendingRequest'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Friend request is pending.')));
+      // Cancel request
+      await appProvider.cancelFriendRequest(widget.currentUsername, _username);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cancelled friend request to $_username')));
     } else {
       await appProvider.sendFriendRequest(widget.currentUsername, _username);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Friend request sent to $_username')));
@@ -62,7 +65,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ActiveChatPage(userName: _username),
+        builder: (context) => ActivechatPage(starName: _username),
       ),
     );
   }
@@ -179,95 +182,97 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage> {
               ],
             ),
             const SizedBox(height: 30),
-            // Action Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isFollowing ? Colors.grey[800] : const Color(0xFF423682),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+            if (_username != widget.currentUsername) ...[
+              // Action Buttons
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isFollowing ? Colors.grey[800] : const Color(0xFF423682),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: _toggleFollow,
+                        icon: Icon(isFollowing ? Icons.check : Icons.person_add, color: Colors.white, size: 18),
+                        label: Text(
+                          isFollowing ? "Following" : "Follow",
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
-                      onPressed: _toggleFollow,
-                      icon: Icon(_isFollowing ? Icons.check : Icons.person_add, color: Colors.white, size: 18),
-                      label: Text(
-                        _isFollowing ? "Following" : "Follow",
-                        style: const TextStyle(color: Colors.white),
-                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isFriend ? Colors.green[700] : Colors.grey[800],
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isFriend ? Colors.green[700] : (isPending ? Colors.orange[700] : Colors.grey[800]),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: _toggleFriend,
+                        icon: Icon(isFriend ? Icons.people : (isPending ? Icons.close : Icons.person_add_alt_1), color: Colors.white, size: 18),
+                        label: Text(
+                          isFriend ? "Friends" : (isPending ? "Cancel Request" : "Add Friend"),
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
-                      onPressed: _toggleFriend,
-                      icon: Icon(_isFriend ? Icons.people : Icons.person_add_alt_1, color: Colors.white, size: 18),
-                      label: Text(
-                        _isFriend ? "Friends" : "Add Friend",
-                        style: const TextStyle(color: Colors.white),
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: const BorderSide(color: Color(0xFF423682)),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(color: Color(0xFF423682)),
+                          ),
+                        ),
+                        onPressed: _sendMessage,
+                        icon: const Icon(Icons.message, color: Colors.white, size: 18),
+                        label: const Text(
+                          "Message",
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      onPressed: _sendMessage,
-                      icon: const Icon(Icons.message, color: Colors.white, size: 18),
-                      label: const Text(
-                        "Message",
-                        style: TextStyle(color: Colors.white),
-                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: const BorderSide(color: Color(0xFFBB86FC)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(color: Color(0xFFBB86FC)),
+                          ),
+                        ),
+                        onPressed: _showCallPrompt,
+                        icon: const Icon(Icons.call, color: Colors.white, size: 18),
+                        label: const Text(
+                          "Call",
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      onPressed: _showCallPrompt,
-                      icon: const Icon(Icons.call, color: Colors.white, size: 18),
-                      label: const Text(
-                        "Call",
-                        style: TextStyle(color: Colors.white),
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 32),
+            ],
             // Stats Section
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

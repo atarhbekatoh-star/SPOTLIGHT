@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../database_helper.dart';
 
 class CallScreen extends StatefulWidget {
   final String userName;
@@ -16,35 +19,106 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  int _secondsElapsed = 0;
-  Timer? _timer;
   bool _isMuted = false;
   bool _isSpeaker = false;
+  bool _isLoading = true;
+  bool _isOnline = false;
+
+  Timer? _callTimer;
+  Timer? _ringTimer;
+  int _durationSeconds = 0;
+  String _callStatus = 'Calling...';
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    _checkOnlineStatus();
   }
 
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _secondsElapsed++;
-      });
+  Future<void> _checkOnlineStatus() async {
+    try {
+      final users = await DatabaseHelper.instance.getAllUsers();
+      final otherUser = users.firstWhere((u) => u['username'] == widget.userName, orElse: () => {});
+      bool isOnline = false;
+      if (otherUser.isNotEmpty) {
+        String today = DateTime.now().toIso8601String().split('T')[0];
+        if (otherUser['lastLoginDate'] == today) {
+          isOnline = true;
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+          _isLoading = false;
+          _callStatus = isOnline ? 'Ringing...' : 'Calling...';
+        });
+      }
+      
+      // Simulate answer or missed
+      if (isOnline) {
+        _ringTimer = Timer(const Duration(seconds: 4), () {
+          if (mounted) {
+            setState(() {
+              _callStatus = '00:00';
+            });
+            _startCallTimer();
+          }
+        });
+      } else {
+        _ringTimer = Timer(const Duration(seconds: 10), () {
+          if (mounted) {
+            setState(() {
+              _callStatus = 'Missed';
+            });
+            _endCallAndSave('Missed', 0);
+            Navigator.pop(context);
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _startCallTimer() {
+    _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _durationSeconds++;
+          final minutes = (_durationSeconds ~/ 60).toString().padLeft(2, '0');
+          final seconds = (_durationSeconds % 60).toString().padLeft(2, '0');
+          _callStatus = '$minutes:$seconds';
+        });
+      }
     });
+  }
+
+  Future<void> _endCallAndSave(String status, int duration) async {
+    final prefs = await SharedPreferences.getInstance();
+    final callHistoryStr = prefs.getStringList('call_history') ?? [];
+    
+    final callRecord = {
+      'caller': 'Me',
+      'receiver': widget.userName,
+      'status': status,
+      'duration': duration,
+      'date': DateTime.now().toIso8601String(),
+      'isVideo': widget.isVideoCall,
+    };
+    
+    callHistoryStr.insert(0, jsonEncode(callRecord));
+    await prefs.setStringList('call_history', callHistoryStr);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _callTimer?.cancel();
+    _ringTimer?.cancel();
     super.dispose();
-  }
-
-  String _formatDuration(int seconds) {
-    final int minutes = seconds ~/ 60;
-    final int remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -65,7 +139,7 @@ class _CallScreenState extends State<CallScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _formatDuration(_secondsElapsed),
+              _isLoading ? '...' : _callStatus,
               style: const TextStyle(
                 fontSize: 18,
                 color: Colors.grey,
@@ -155,7 +229,10 @@ class _CallScreenState extends State<CallScreen> {
 
   Widget _buildEndCallButton() {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () async {
+        await _endCallAndSave(_durationSeconds > 0 ? 'Answered' : 'Missed', _durationSeconds);
+        if (mounted) Navigator.pop(context);
+      },
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
