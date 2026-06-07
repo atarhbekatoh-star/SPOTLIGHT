@@ -1092,11 +1092,9 @@ class _ActivechatPageState extends State<ActivechatPage> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () {
-                    if (_messageController.text.isNotEmpty) {
+                    if (_messageController.text.trim().isNotEmpty) {
                       _sendMessage(_messageController.text.trim(), 'text');
                       _messageController.clear();
-                    } else {
-                      _sendMessage('', 'voice', extra: '2:40');
                     }
                   },
                   child: Container(
