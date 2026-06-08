@@ -565,7 +565,7 @@ class _ActivechatPageState extends State<ActivechatPage> {
 
   List<Map<String, dynamic>> _messages = [];
   bool _isLoadingMessages = true;
-  StreamSubscription<List<Map<String, dynamic>>>? _messagesSubscription;
+  Timer? _pollingTimer;
   int _previousMessageCount = 0;
 
   @override
@@ -590,32 +590,8 @@ class _ActivechatPageState extends State<ActivechatPage> {
         final map = jsonDecode(userJson);
         _currentUser = map['username'];
         
-        _messagesSubscription = DatabaseHelper.instance.getMessagesStream(_currentUser!, widget.starName).listen((data) {
-          if (mounted) {
-            setState(() {
-              _messages = data;
-              _isLoadingMessages = false;
-            });
-            if (_messages.length > _previousMessageCount) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_scrollController.hasClients) {
-                  _scrollController.animateTo(
-                    _scrollController.position.maxScrollExtent,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                  );
-                }
-              });
-            }
-            _previousMessageCount = _messages.length;
-          }
-        }, onError: (err) {
-          if (mounted) {
-            setState(() {
-              _isLoadingMessages = false;
-            });
-          }
-        });
+        _pollMessages();
+        _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollMessages());
 
         // Mark received messages as read
         DatabaseHelper.instance.markMessagesAsRead(widget.starName, _currentUser!);
@@ -625,9 +601,34 @@ class _ActivechatPageState extends State<ActivechatPage> {
         });
       }
     } catch (e) {
-      setState(() {
-        _isLoadingMessages = false;
-      });
+      if (mounted) setState(() => _isLoadingMessages = false);
+    }
+  }
+
+  Future<void> _pollMessages() async {
+    if (_currentUser == null) return;
+    try {
+      final data = await DatabaseHelper.instance.getMessages(_currentUser!, widget.starName);
+      if (mounted) {
+        setState(() {
+          _messages = data;
+          _isLoadingMessages = false;
+        });
+        if (_messages.length > _previousMessageCount) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+        }
+        _previousMessageCount = _messages.length;
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingMessages = false);
     }
   }
 
@@ -716,7 +717,7 @@ class _ActivechatPageState extends State<ActivechatPage> {
 
   @override
   void dispose() {
-    _messagesSubscription?.cancel();
+    _pollingTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -875,17 +876,6 @@ class _ActivechatPageState extends State<ActivechatPage> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.call, color: Color(0xFFBB86FC)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CallScreen(userName: widget.starName, isVideoCall: false),
-                ),
-              );
-            },
-          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             color: const Color(0xFF16161A),
