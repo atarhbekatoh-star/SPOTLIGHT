@@ -148,6 +148,28 @@ class DatabaseHelper {
     return false;
   }
 
+  Future<bool> resetUserPassword(String username, String newPassword) async {
+    try {
+      await supabase
+          .from('users')
+          .update({'password': newPassword})
+          .eq('username', username);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    final users = await getAllUsers();
+    for (var user in users) {
+      if (user['email'] == email) {
+        return user;
+      }
+    }
+    return null;
+  }
+
   Future<void> logoutUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('current_user');
